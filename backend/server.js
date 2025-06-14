@@ -63,6 +63,17 @@ app.post('/api/registro', async (req, res) => {
   }
 });
 
+app.get('/api/recargas/:clienteId', (req, res) => {
+  const { clienteId } = req.params;
+  db.all('SELECT * FROM recargas WHERE clienteId = ? ORDER BY fecha DESC', [clienteId], (err, rows) => {
+    if (err) {
+      return res.status(500).json({ error: 'Error al obtener recargas' });
+    }
+    res.status(200).json(rows);
+  });
+});
+
+
 // Login: all users
 // POST /api/login — verifica contraseña y devuelve token JWT
 app.post('/api/login', async (req, res) => {

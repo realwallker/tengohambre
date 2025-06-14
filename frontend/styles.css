@@ -1,18 +1,100 @@
-/* styles.css */
-body {
-  font-family: 'Poppins', sans-serif;
-  background-color: #FFF8F0;
-  color: #222;
+/* GLOBAL RESET */
+* {
   margin: 0;
   padding: 0;
+  box-sizing: border-box;
 }
 
-h1, h2, h3 {
-  color: #C0392B;
+/* FUENTES */
+body {
+  font-family: 'Poppins', sans-serif;
+  background-color: #fef9f4;
+  color: #333;
+  padding-bottom: 3rem;
 }
 
+/* CONTAINER GENERAL */
+.container {
+  max-width: 600px;
+  margin: auto;
+  padding: 1.5rem;
+}
+
+/* NAVBAR */
+nav {
+  background-color: #fbd3a0;
+  padding: 1rem 2rem;
+  font-weight: bold;
+  font-size: 1.2rem;
+  color: #8b4513;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+nav a {
+  color: #8b4513;
+  text-decoration: none;
+  margin-left: 1rem;
+  font-size: 0.95rem;
+}
+
+nav a:hover {
+  text-decoration: underline;
+}
+
+/* TITULOS */
+h2 {
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
+  color: #d35400;
+}
+
+/* FORMULARIOS */
+form {
+  display: flex;
+  flex-direction: column;
+}
+
+label {
+  margin: 0.5rem 0 0.2rem;
+  font-weight: 600;
+}
+
+input {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+}
+
+/* BOTONES */
+button {
+  background-color: #ff914d;
+  color: white;
+  border: none;
+  padding: 12px;
+  font-size: 1rem;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+button:hover {
+  background-color: #e07b32;
+}
+
+/* TEXTOS SECUNDARIOS */
+p {
+  margin-top: 0.5rem;
+  line-height: 1.4;
+  font-size: 0.95rem;
+}
+
+/* LINKS */
 a {
-  color: #C0392B;
+  color: #c0392b;
   text-decoration: none;
 }
 
@@ -20,44 +102,41 @@ a:hover {
   text-decoration: underline;
 }
 
-button {
-  background-color: #FFA500;
-  color: white;
-  border: none;
-  padding: 10px 16px;
-  border-radius: 6px;
-  font-size: 16px;
-  cursor: pointer;
-}
-
-button:hover {
-  background-color: #e69500;
-}
-
-input, select {
-  padding: 10px;
-  margin: 6px 0;
-  border: 1px solid #CCC;
-  border-radius: 4px;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.container {
-  max-width: 600px;
-  margin: auto;
-  padding: 2rem;
-}
-
-nav {
-  background-color: #FFA500;
+/* TARJETAS / LISTAS */
+.item, .promo, .cliente-info {
+  background-color: #fffaf1;
+  border: 1px solid #ffe1b4;
+  border-radius: 12px;
   padding: 1rem;
-  color: white;
-  text-align: center;
+  margin: 0.7rem 0;
 }
 
-nav a {
-  color: white;
-  margin: 0 10px;
-  font-weight: bold;
+/* QR RESPONSIVE */
+#qrcode {
+  margin: 2rem auto;
+  width: fit-content;
+}
+
+/* MEDIA QUERIES */
+@media (max-width: 600px) {
+  nav {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  nav a {
+    margin: 0.3rem 0 0 0;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+  }
+
+  .container {
+    padding: 1rem;
+  }
+
+  button {
+    width: 100%;
+  }
 }

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Promociones - Tengo Hambre</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .promo {
+      background: #fff1dc;
+      padding: 1rem;
+      margin: 1rem 0;
+      border-radius: 12px;
+      text-align: left;
+    }
+    .promo button {
+      margin-top: 0.5rem;
+      padding: 6px 12px;
+    }
+  </style>
+</head>
+<body>
+    <div id="navbar"></div>
+<script>
+  fetch('/navbar.html')
+    .then(res => res.text())
+    .then(html => {
+      document.getElementById('navbar').innerHTML = html;
+
+      const rol = localStorage.getItem('rol');
+      const userId = localStorage.getItem('userId');
+
+      let links = '';
+
+      if (rol === 'cliente') {
+        links = `
+          <a href="/cliente.html?id=${userId}">Mi Perfil</a> |
+          <a href="/promociones.html">Promos</a> |
+          <a href="/canjes.html?id=${userId}">Canjes</a> |
+          <a href="#" onclick="logout()">Cerrar sesión</a>
+        `;
+      } else if (rol === 'admin') {
+        links = `
+          <a href="/panel.html">Panel</a> |
+          <a href="#" onclick="logout()">Cerrar sesión</a>
+        `;
+      } else {
+        links = `
+          <a href="/login.html">Iniciar sesión</a> |
+          <a href="/registro.html">Registrarse</a>
+        `;
+      }
+
+      document.getElementById('nav-links').innerHTML = links;
+    });
+
+  function logout() {
+    localStorage.clear();
+    window.location.href = '/login.html';
+  }
+</script>
+
+  <nav>
+    🍔 Tengo Hambre
+  </nav>
+
+  <div class="container">
+    <h2>🎁 Promociones disponibles</h2>
+    <p>Canjeá tus coins por deliciosas recompensas 🍟</p>
+    <div id="promos"></div>
+
+    <p style="margin-top:2rem;">
+      <a href="/cliente.html?id=" id="perfilLink">← Volver a mi perfil</a>
+    </p>
+    <button onclick="logout()">Cerrar sesión</button>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('token');
+    const rol = localStorage.getItem('rol');
+    const userId = localStorage.getItem('userId');
+
+    if (!token || rol !== 'cliente') {
+      alert('Acceso denegado');
+      window.location.href = '/login.html';
+    }
+
+    document.getElementById('perfilLink').href = `/cliente.html?id=${userId}`;
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = '/login.html';
+    }
+
+    const promos = [
+      { id: 1, nombre: 'Sánduche Clásico', costo: 10 },
+      { id: 2, nombre: 'Bebida Grande', costo: 5 },
+      { id: 3, nombre: 'Combo Tengo Hambre', costo: 20 }
+    ];
+
+    let coins = 0;
+
+    async function cargarPromos() {
+      const res = await fetch(`https://tengohambre-backend.onrender.com/api/clientes/${userId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const cliente = await res.json();
+      coins = cliente.hambreCoins;
+
+      const contenedor = document.getElementById('promos');
+      promos.forEach(promo => {
+        const div = document.createElement('div');
+        div.className = 'promo';
+        div.innerHTML = `
+          <h3>${promo.nombre}</h3>
+          <p>Costo: ${promo.costo} Coins</p>
+          <button onclick="canjear(${promo.costo}, '${promo.nombre}')"
+            ${coins < promo.costo ? 'disabled' : ''}>
+            Canjear
+          </button>
+        `;
+        contenedor.appendChild(div);
+      });
+    }
+
+    async function canjear(costo, promoNombre) {
+      if (coins < costo) return alert('No tenés suficientes coins');
+
+      const confirmacion = confirm(`¿Confirmás canjear ${costo} Coins por "${promoNombre}"?`);
+      if (!confirmacion) return;
+
+      // Restar coins en backend
+      await fetch(`https://tengohambre-backend.onrender.com/api/clientes/${userId}/cargar`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ monto: -costo }) // se descuenta
+      });
+
+      alert(`Canjeado: ${promoNombre}`);
+      location.reload();
+    }
+
+    cargarPromos();
+  </script>
+</body>
+</html>

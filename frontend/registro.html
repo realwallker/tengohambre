@@ -8,6 +8,46 @@
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
+  <div id="navbar"></div>
+<script>
+  fetch('/navbar.html')
+    .then(res => res.text())
+    .then(html => {
+      document.getElementById('navbar').innerHTML = html;
+
+      const rol = localStorage.getItem('rol');
+      const userId = localStorage.getItem('userId');
+
+      let links = '';
+
+      if (rol === 'cliente') {
+        links = `
+          <a href="/cliente.html?id=${userId}">Mi Perfil</a> |
+          <a href="/promociones.html">Promos</a> |
+          <a href="/canjes.html?id=${userId}">Canjes</a> |
+          <a href="#" onclick="logout()">Cerrar sesión</a>
+        `;
+      } else if (rol === 'admin') {
+        links = `
+          <a href="/panel.html">Panel</a> |
+          <a href="#" onclick="logout()">Cerrar sesión</a>
+        `;
+      } else {
+        links = `
+          <a href="/login.html">Iniciar sesión</a> |
+          <a href="/registro.html">Registrarse</a>
+        `;
+      }
+
+      document.getElementById('nav-links').innerHTML = links;
+    });
+
+  function logout() {
+    localStorage.clear();
+    window.location.href = '/login.html';
+  }
+</script>
+
   <nav>
     🍔 Tengo Hambre
   </nav>

@@ -8,72 +8,73 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
   <style>
-    #reader {
-      max-width: 320px;
-      margin: 2rem auto;
-    }
-    .card {
-      background: #fff;
-      padding: 1rem;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      margin: 1rem 0;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 1rem;
-    }
-    th, td {
-      border-bottom: 1px solid #eee;
+    body { font-family: 'Poppins', sans-serif; text-align: center; padding:2rem; }
+    #reader { width: 300px; margin: auto; }
+    #info { margin-top: 2rem; }
+    input, button {
+      margin: 0.5rem;
       padding: 10px;
-      text-align: center;
+      font-size: 16px;
     }
-    th {
-      background: #f3f3f3;
-    }
-    .acciones input {
-      width: 60px;
-    }
-    .acciones button {
-      margin-left: 5px;
+    .cliente-info {
+      background: #fef9e7;
+      padding: 1rem;
+      border-radius: 10px;
+      display: inline-block;
     }
   </style>
 </head>
 <body>
-  <nav>
-    👩‍🍳 Tengo Hambre - Panel Admin
-  </nav>
+  <div id="navbar"></div>
+<script>
+  fetch('/navbar.html')
+    .then(res => res.text())
+    .then(html => {
+      document.getElementById('navbar').innerHTML = html;
 
-  <div class="container">
-    <h2>Escáner QR para recargar</h2>
-    <div id="reader"></div>
-    <div id="info"></div>
+      const rol = localStorage.getItem('rol');
+      const userId = localStorage.getItem('userId');
 
-    <h2>Clientes</h2>
-    <input type="text" id="buscador" placeholder="Buscar por nombre, teléfono o email">
+      let links = '';
 
-    <table>
-      <thead>
-        <tr>
-          <th>Nombre</th>
-          <th>Teléfono</th>
-          <th>Email</th>
-          <th>Coins</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody id="tabla-clientes"></tbody>
-    </table>
+      if (rol === 'cliente') {
+        links = `
+          <a href="/cliente.html?id=${userId}">Mi Perfil</a> |
+          <a href="/promociones.html">Promos</a> |
+          <a href="/canjes.html?id=${userId}">Canjes</a> |
+          <a href="#" onclick="logout()">Cerrar sesión</a>
+        `;
+      } else if (rol === 'admin') {
+        links = `
+          <a href="/panel.html">Panel</a> |
+          <a href="#" onclick="logout()">Cerrar sesión</a>
+        `;
+      } else {
+        links = `
+          <a href="/login.html">Iniciar sesión</a> |
+          <a href="/registro.html">Registrarse</a>
+        `;
+      }
 
-    <div style="text-align:center; margin-top:2rem;">
-      <button onclick="logout()">Cerrar sesión</button>
-    </div>
-  </div>
+      document.getElementById('nav-links').innerHTML = links;
+    });
+
+  function logout() {
+    localStorage.clear();
+    window.location.href = '/login.html';
+  }
+</script>
+
+  <h2>📷 Escanear Cliente</h2>
+  <div id="reader"></div>
+  <div id="info"></div>
+
+  <button onclick="logout()" style="margin-top:2rem;">Cerrar sesión</button>
 
   <script>
     const token = localStorage.getItem('token');
     const rol = localStorage.getItem('rol');
+
     if (!token || rol !== 'admin') {
       alert('Acceso denegado');
       window.location.href = '/login.html';
@@ -84,105 +85,29 @@
       window.location.href = '/login.html';
     }
 
-    let clientes = [];
+    let cliente;
 
-    async function cargarClientes() {
-      const res = await fetch('https://tengohambre-backend.onrender.com/api/clientes', {
+    async function fetchCliente(id) {
+      const res = await fetch(`https://tengohambre-backend.onrender.com/api/clientes/${id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      clientes = await res.json();
-      mostrarTabla(clientes);
-    }
+      cliente = await res.json();
 
-    function mostrarTabla(lista) {
-      const tbody = document.getElementById('tabla-clientes');
-      tbody.innerHTML = '';
-      lista.forEach(c => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${c.nombre}</td>
-          <td>${c.telefono}</td>
-          <td>${c.email}</td>
-          <td id="coins-${c.id}">${c.hambreCoins}</td>
-          <td class="acciones">
-            <input type="number" id="in-${c.id}" placeholder="+" min="1">
-            <button onclick="cargar('${c.id}')">➕</button>
-            <button onclick="eliminar('${c.id}')">🗑</button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    document.getElementById('buscador').addEventListener('input', e => {
-      const txt = e.target.value.toLowerCase();
-      mostrarTabla(clientes.filter(c =>
-        c.nombre.toLowerCase().includes(txt) ||
-        c.telefono.includes(txt) ||
-        c.email.toLowerCase().includes(txt)
-      ));
-    });
-
-    async function cargar(id) {
-      const monto = parseInt(document.getElementById(`in-${id}`).value);
-      if (!monto || monto <= 0) return alert('Monto inválido');
-      await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${id}/cargar`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ monto })
-      });
-      document.getElementById(`coins-${id}`).textContent =
-        parseInt(document.getElementById(`coins-${id}`).textContent) + monto;
-      document.getElementById(`in-${id}`).value = '';
-    }
-
-    async function eliminar(id) {
-      if (!confirm('¿Eliminar este cliente?')) return;
-      await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      cargarClientes();
-    }
-
-    // --- QR Lógica ---
-    let qrScanner = null;
-    const readerDiv = document.getElementById('reader');
-    const infoDiv = document.getElementById('info');
-
-    function iniciarEscaneo() {
-      infoDiv.innerHTML = '';
-      qrScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
-      qrScanner.render(async (decodedText) => {
-        qrScanner.clear();
-        await mostrarCargaQR(decodedText);
-      });
-    }
-
-    async function mostrarCargaQR(clienteId) {
-      const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${clienteId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (!res.ok) return alert('Cliente no encontrado');
-      const cliente = await res.json();
-
-      infoDiv.innerHTML = `
-        <div class="card">
+      document.getElementById('info').innerHTML = `
+        <div class="cliente-info">
           <h3>${cliente.nombre}</h3>
-          <p>Saldo actual: ${cliente.hambreCoins} coins</p>
-          <input type="number" id="qr-monto" placeholder="Cantidad" min="1">
-          <button onclick="cargarDesdeQR('${cliente.id}')">Cargar</button>
+          <p>Saldo actual: <strong>${cliente.hambreCoins}</strong> Coins</p>
+          <input type="number" id="monto" placeholder="¿Cuántas coins otorgar?">
+          <button onclick="cargar()">Cargar Coins</button>
         </div>
       `;
     }
 
-    async function cargarDesdeQR(id) {
-      const monto = parseInt(document.getElementById('qr-monto').value);
+    async function cargar() {
+      const monto = parseInt(document.getElementById('monto').value);
       if (!monto || monto <= 0) return alert('Monto inválido');
-      await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${id}/cargar`, {
+
+      await fetch(`https://tengohambre-backend.onrender.com/api/clientes/${cliente.id}/cargar`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -190,22 +115,25 @@
         },
         body: JSON.stringify({ monto })
       });
-      alert(`✅ Se recargaron ${monto} coins`);
 
-      // Actualiza tabla
-      cargarClientes();
+      alert('Coins cargadas exitosamente');
+      fetchCliente(cliente.id); // refrescar datos
 
-      // Preguntar si desea seguir escaneando
-      if (confirm('¿Deseás escanear otro cliente?')) {
-        infoDiv.innerHTML = '';
-        iniciarEscaneo();
-      } else {
-        infoDiv.innerHTML = '<p>Escaneo finalizado. Podés seguir operando desde la tabla.</p>';
-      }
+      // reiniciar escáner después de 1 segundo
+      setTimeout(() => {
+        document.getElementById('info').innerHTML = '';
+        scanner.clear();
+        scanner.render(decoded => {
+          fetchCliente(decoded);
+        });
+      }, 1000);
     }
 
-    cargarClientes();
-    iniciarEscaneo();
+    const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+    scanner.render(decoded => {
+      scanner.clear();
+      fetchCliente(decoded);
+    });
   </script>
 </body>
 </html>
