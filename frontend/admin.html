@@ -36,7 +36,7 @@
 
     let cliente;
     async function fetchCliente(id) {
-      const res = await fetch(`/api/clientes/${id}`, {
+      const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${id}`, {
         headers:{ 'Authorization':`Bearer ${token}` }
       });
       cliente = await res.json();
@@ -50,7 +50,7 @@
     async function cargar() {
       const m = parseInt(document.getElementById('monto').value);
       if (!m||m<=0) return alert('Monto inválido');
-      await fetch(`/api/clientes/${cliente.id}/cargar`, {
+      await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${cliente.id}/cargar`, {
         method:'POST',
         headers:{
           'Content-Type':'application/json',

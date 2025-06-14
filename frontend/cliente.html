@@ -73,7 +73,7 @@
     const params = new URLSearchParams(window.location.search);
     const id = params.get('id');
 
-    fetch(`/api/clientes/${id}`, {
+    fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${id}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
       .then(res => res.json())

@@ -53,7 +53,7 @@
     }
 
     async function cargarCanjes() {
-      const res = await fetch(`/api/clientes/${userId}/canjes`, {
+      const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${userId}/canjes`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const datos = await res.json();

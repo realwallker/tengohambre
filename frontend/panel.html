@@ -126,7 +126,7 @@
     async function cargar(id) {
       const monto = parseInt(document.getElementById(`in-${id}`).value);
       if (!monto || monto <= 0) return alert('Monto inválido');
-      await fetch(`/api/clientes/${id}/cargar`, {
+      await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${id}/cargar`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -141,7 +141,7 @@
 
     async function eliminar(id) {
       if (!confirm('¿Eliminar este cliente?')) return;
-      await fetch(`/api/clientes/${id}`, {
+      await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -163,7 +163,7 @@
     }
 
     async function mostrarCargaQR(clienteId) {
-      const res = await fetch(`/api/clientes/${clienteId}`, {
+      const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${clienteId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) return alert('Cliente no encontrado');
@@ -182,7 +182,7 @@
     async function cargarDesdeQR(id) {
       const monto = parseInt(document.getElementById('qr-monto').value);
       if (!monto || monto <= 0) return alert('Monto inválido');
-      await fetch(`/api/clientes/${id}/cargar`, {
+      await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${id}/cargar`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
