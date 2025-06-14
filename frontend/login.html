@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Iniciar sesión - Tengo Hambre</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <nav>
+    🍔 Tengo Hambre
+  </nav>
+
+  <div class="container">
+    <h2>Iniciar sesión</h2>
+    <p>¡Bienvenido de nuevo! Ingresá tus datos para entrar.</p>
+
+    <form id="loginForm">
+      <label for="telefono">Teléfono</label>
+      <input name="telefono" id="telefono" placeholder="Ej: 1234567890" required>
+
+      <label for="password">Contraseña</label>
+      <input name="password" id="password" type="password" placeholder="Tu contraseña" required>
+
+      <button type="submit">Entrar</button>
+    </form>
+
+    <p style="margin-top: 1rem;">
+      ¿No tenés cuenta? <a href="/registro.html">Registrate aquí</a>
+    </p>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('token');
+    const rol = localStorage.getItem('rol');
+    const userId = localStorage.getItem('userId');
+    if (token && rol && userId) {
+      window.location.href = rol === 'admin' ? '/panel.html' : `/cliente.html?id=${userId}`;
+    }
+
+    const form = document.getElementById('loginForm');
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(form).entries());
+
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+
+      const json = await res.json();
+
+      if (res.ok) {
+        localStorage.setItem('token', json.token);
+        localStorage.setItem('rol', json.rol);
+        localStorage.setItem('userId', json.id);
+        window.location.href = json.rol === 'admin'
+          ? '/panel.html'
+          : `/cliente.html?id=${json.id}`;
+      } else {
+        alert('Error: ' + json.error);
+      }
+    });
+  </script>
+</body>
+</html>

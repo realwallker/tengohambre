@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Registro - Tengo Hambre</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <nav>
+    🍔 Tengo Hambre
+  </nav>
+
+  <div class="container">
+    <h2>Crear cuenta</h2>
+    <p>Registrate para empezar a ganar HambreCoins 🍟</p>
+
+    <form id="registroForm">
+      <label for="nombre">Nombre</label>
+      <input name="nombre" id="nombre" placeholder="Tu nombre completo" required>
+
+      <label for="telefono">Teléfono</label>
+      <input name="telefono" id="telefono" placeholder="Ej: 1234567890" required>
+
+      <label for="email">Email</label>
+      <input name="email" id="email" type="email" placeholder="ejemplo@mail.com" required>
+
+      <label for="password">Contraseña</label>
+      <input name="password" id="password" type="password" placeholder="Mínimo 6 caracteres" required>
+
+      <button type="submit">Registrarme</button>
+    </form>
+
+    <p style="margin-top: 1rem;">
+      ¿Ya tenés cuenta? <a href="/login.html">Iniciar sesión</a>
+    </p>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('token');
+    const rol = localStorage.getItem('rol');
+    const userId = localStorage.getItem('userId');
+    if (token && rol && userId) {
+      window.location.href = rol === 'admin' ? '/panel.html' : `/cliente.html?id=${userId}`;
+    }
+
+    const form = document.getElementById('registroForm');
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(form).entries());
+
+      const res = await fetch('/api/registro', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+
+      const json = await res.json();
+
+      if (res.ok) {
+        alert('Registro exitoso. Ahora iniciá sesión.');
+        window.location.href = '/login.html';
+      } else {
+        alert('Error: ' + json.error);
+      }
+    });
+  </script>
+</body>
+</html>

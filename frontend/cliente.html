@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Mi Cuenta - Tengo Hambre</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    #qrcode {
+      margin: 2rem auto;
+      width: fit-content;
+    }
+    .saldo {
+      font-size: 20px;
+      margin-top: 1rem;
+      background-color: #fff1dc;
+      padding: 10px 20px;
+      border-radius: 12px;
+      display: inline-block;
+      color: #c0392b;
+    }
+    .acciones a {
+      margin: 0 10px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    🍔 Tengo Hambre
+  </nav>
+
+  <div class="container">
+    <h2 id="saludo">Hola 👋</h2>
+    <p class="saldo">Tenés <strong><span id="coins">0</span></strong> HambreCoins 🍟</p>
+
+    <div id="qrcode"></div>
+
+    <div class="acciones" style="text-align:center; margin-top:1rem;">
+      <a href="/promociones.html">🎁 Ver promociones</a>
+      <a href="/canjes.html?id=USER_ID">📋 Ver canjes</a>
+    </div>
+
+    <div style="text-align:center; margin-top:2rem;">
+      <button onclick="logout()">Cerrar sesión</button>
+    </div>
+  </div>
+
+  <script>
+    // Proteger acceso
+    const token = localStorage.getItem('token'),
+          rol = localStorage.getItem('rol'),
+          userId = localStorage.getItem('userId');
+
+    if (!token || rol !== 'cliente') {
+      alert('Debes iniciar sesión');
+      window.location.href = '/login.html';
+    }
+
+    // Reemplazar enlaces dinámicos
+    document.querySelectorAll('a[href*="USER_ID"]').forEach(link => {
+      link.href = link.href.replace('USER_ID', userId);
+    });
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = '/login.html';
+    }
+
+    // Obtener datos del cliente
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+
+    fetch(`/api/clientes/${id}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(cliente => {
+        document.getElementById('saludo').textContent = `Hola ${cliente.nombre} 👋`;
+        document.getElementById('coins').textContent = cliente.hambreCoins;
+
+        new QRCode(document.getElementById('qrcode'), {
+          text: cliente.id,
+          width: 160,
+          height: 160
+        });
+      })
+      .catch(() => {
+        document.body.innerHTML = '<p>Error al cargar el perfil.</p>';
+      });
+  </script>
+</body>
+</html>

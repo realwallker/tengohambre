@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+
+  <meta charset="UTF-8">
+  <title>Mis Canjes - Tengo Hambre</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; }
+    h2 { margin-bottom: 1rem; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background: #f0f0f0;
+    }
+  </style>
+</head>
+<body>
+  <h2>📋 Mi Historial de Canjes</h2>
+  <p><a href="/cliente.html?id=<script>document.write(localStorage.getItem('userId'))</script>">← Volver a mi perfil</a></p>
+  <table>
+    <thead>
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+      <tr>
+        <th>Fecha</th>
+        <th>Promoción</th>
+        <th>Costo</th>
+      </tr>
+    </thead>
+    <tbody id="canjes-tbody">
+      <tr><td colspan="3">Cargando...</td></tr>
+    </tbody>
+  </table>
+
+  <script>
+    const token = localStorage.getItem('token'),
+          rol   = localStorage.getItem('rol'),
+          userId= localStorage.getItem('userId');
+
+    if (!token || rol !== 'cliente') {
+      alert('Acceso denegado');
+      window.location.href = '/login.html';
+    }
+
+    async function cargarCanjes() {
+      const res = await fetch(`/api/clientes/${userId}/canjes`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const datos = await res.json();
+      const tbody = document.getElementById('canjes-tbody');
+      if (!res.ok) {
+        tbody.innerHTML = `<tr><td colspan="3">Error al cargar historial</td></tr>`;
+        return;
+      }
+      if (!datos.length) {
+        tbody.innerHTML = `<tr><td colspan="3">Aún no has canjeado nada.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = '';
+      datos.forEach(c => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${new Date(c.fecha).toLocaleString()}</td>
+          <td>${c.nombre}</td>
+          <td>${c.costo}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    cargarCanjes();
+  </script>
+</body>
+</html>

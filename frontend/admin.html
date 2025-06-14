@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<nav style="text-align: right;">
+  <a href="/cliente.html?id=USER_ID">Mi Perfil</a> |
+  <a href="/promociones.html">Promos</a> |
+  <a href="/canjes.html?id=USER_ID">Canjes</a> |
+  <a href="#" onclick="logout()">Cerrar sesión</a>
+</nav>
+<html lang="es">
+<head>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+  <meta charset="UTF-8">
+  <title>Admin Scanner - Tengo Hambre</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding:2rem; }
+    #reader { width:300px; margin:auto; }
+    #info { margin-top:1rem; }
+    input, button { margin:0.5rem; padding:8px; }
+  </style>
+</head>
+<body>
+  <h2>Escanear Cliente 📷</h2>
+  <button onclick="logout()">Cerrar sesión</button>
+  <div id="reader"></div>
+  <div id="info"></div>
+
+  <script>
+    const token = localStorage.getItem('token'),
+          rol = localStorage.getItem('rol');
+    if (!token||rol!=='admin') {
+      alert('Acceso denegado');
+      window.location.href = '/login.html';
+    }
+    function logout(){ localStorage.clear(); window.location.href='/login.html'; }
+
+    let cliente;
+    async function fetchCliente(id) {
+      const res = await fetch(`/api/clientes/${id}`, {
+        headers:{ 'Authorization':`Bearer ${token}` }
+      });
+      cliente = await res.json();
+      document.getElementById('info').innerHTML = `
+        <h3>${cliente.nombre}</h3>
+        <p>Coins: ${cliente.hambreCoins}</p>
+        <input type="number" id="monto" placeholder="Cantidad">
+        <button onclick="cargar()">Cargar</button>
+      `;
+    }
+    async function cargar() {
+      const m = parseInt(document.getElementById('monto').value);
+      if (!m||m<=0) return alert('Monto inválido');
+      await fetch(`/api/clientes/${cliente.id}/cargar`, {
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'Authorization':`Bearer ${token}`
+        },
+        body: JSON.stringify({ monto: m })
+      });
+      alert('Cargado');
+      fetchCliente(cliente.id);
+    }
+
+    const scanner = new Html5QrcodeScanner("reader",{fps:10,qrbox:250});
+    scanner.render(decoded => {
+      scanner.clear();
+      fetchCliente(decoded);
+    });
+  </script>
+  
+</body>
+</html>
