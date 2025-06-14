@@ -87,7 +87,7 @@
     let clientes = [];
 
     async function cargarClientes() {
-      const res = await fetch('/api/clientes', {
+      const res = await fetch('https://tengohambre-backend.onrender.com/api/clientes', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       clientes = await res.json();
