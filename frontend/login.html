@@ -110,5 +110,32 @@
       });
     });
   </script>
+  <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('loginForm');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(form).entries());
+
+      const res = await fetch('https://tengohambre-backend.onrender.com/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+
+      const json = await res.json();
+
+      if (res.ok) {
+        localStorage.setItem('token', json.token);
+        localStorage.setItem('userId', json.id);
+        localStorage.setItem('rol', json.rol);
+        window.location.href = json.rol === 'admin' ? '/panel.html' : `/cliente.html?id=${json.id}`;
+      } else {
+        alert('Credenciales inválidas');
+      }
+    });
+  });
+</script>
+
 </body>
 </html>
