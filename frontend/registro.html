@@ -85,30 +85,7 @@
       window.location.href = rol === 'admin' ? '/panel.html' : `/cliente.html?id=${userId}`;
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-      const form = document.getElementById('registroForm');
-      form.addEventListener('submit', async e => {
-        e.preventDefault();
-        const data = Object.fromEntries(new FormData(form).entries());
 
-        const res = await fetch('https://tengohambre-backend.onrender.com/api/registro', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
-
-        const json = await res.json();
-
-        if (res.ok) {
-          alert('Registro exitoso. Ahora iniciá sesión.');
-          window.location.href = '/login.html';
-        } else {
-          alert('Error: ' + json.error);
-        }
-      });
-    });
-  </script>
-  <script>
   document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('registroForm');
     form.addEventListener('submit', async (e) => {
@@ -132,6 +109,7 @@
     });
   });
 </script>
+
 
 </body>
 </html>
