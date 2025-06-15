@@ -9,47 +9,49 @@
 </head>
 <body>
   <div id="navbar"></div>
-<script>
-  fetch('/navbar.html')
-    .then(res => res.text())
-    .then(html => {
-      document.getElementById('navbar').innerHTML = html;
 
-      const rol = localStorage.getItem('rol');
-      const userId = localStorage.getItem('userId');
+  <script>
+    fetch('/navbar.html')
+      .then(res => res.text())
+      .then(html => {
+        document.getElementById('navbar').innerHTML = html;
 
-      let links = '';
+        const rol = localStorage.getItem('rol');
+        const userId = localStorage.getItem('userId');
 
-      if (rol === 'cliente') {
-        links = `
-          <a href="/cliente.html?id=${userId}">Mi Perfil</a> |
-          <a href="/promociones.html">Promos</a> |
-          <a href="/canjes.html?id=${userId}">Canjes</a> |
-          <a href="#" onclick="logout()">Cerrar sesión</a>
-        `;
-      } else if (rol === 'admin') {
-        links = `
-          <a href="/panel.html">Panel</a> |
-          <a href="#" onclick="logout()">Cerrar sesión</a>
-        `;
-      } else {
-        links = `
-          <a href="/login.html">Iniciar sesión</a> |
-          <a href="/registro.html">Registrarse</a>
-        `;
-      }
+        let links = '';
 
-      document.getElementById('nav-links').innerHTML = links;
-    });
+        if (rol === 'cliente') {
+          links = `
+            <a href="/cliente.html?id=${userId}">Mi Perfil</a> |
+            <a href="/promociones.html">Promos</a> |
+            <a href="/canjes.html?id=${userId}">Canjes</a> |
+            <a href="#" onclick="logout()">Cerrar sesión</a>
+          `;
+        } else if (rol === 'admin') {
+          links = `
+            <a href="/panel.html">Panel</a> |
+            <a href="#" onclick="logout()">Cerrar sesión</a>
+          `;
+        } else {
+          links = `
+            <a href="/login.html">Iniciar sesión</a> |
+            <a href="/registro.html">Registrarse</a>
+          `;
+        }
 
-  function logout() {
-    localStorage.clear();
-    window.location.href = '/login.html';
-  }
-</script>
+        document.getElementById('nav-links').innerHTML = links;
+      });
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = '/login.html';
+    }
+  </script>
 
   <nav>
     🍔 Tengo Hambre
+    <span id="nav-links"></span>
   </nav>
 
   <div class="container">
@@ -85,31 +87,34 @@
       window.location.href = rol === 'admin' ? '/panel.html' : `/cliente.html?id=${userId}`;
     }
 
+    document.addEventListener('DOMContentLoaded', () => {
+      const form = document.getElementById('registroForm');
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const data = Object.fromEntries(new FormData(form).entries());
 
-  document.addEventListener('DOMContentLoaded', () => {
-    const form = document.getElementById('registroForm');
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const data = Object.fromEntries(new FormData(form).entries());
+        try {
+          const res = await fetch('https://tengo-hambre-backend.onrender.com/api/registro', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
 
-      const res = await fetch('https://tengohambre-backend.onrender.com/api/registro', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+          const json = await res.json();
+
+          if (res.ok) {
+            alert('Registro exitoso. Iniciá sesión.');
+            window.location.href = '/login.html';
+          } else {
+            alert('Error: ' + (json.error || 'No se pudo registrar'));
+          }
+        } catch (err) {
+          alert('Error de conexión con el servidor');
+          console.error(err);
+        }
       });
-
-      const json = await res.json();
-
-      if (res.ok) {
-        alert('Registro exitoso. Iniciá sesión.');
-        window.location.href = '/login.html';
-      } else {
-        alert('Error: ' + json.error);
-      }
     });
-  });
-</script>
-
+  </script>
 
 </body>
 </html>
