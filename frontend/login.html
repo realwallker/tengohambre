@@ -79,38 +79,7 @@
       window.location.href = rol === 'admin' ? '/panel.html' : `/cliente.html?id=${userId}`;
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-      const form = document.getElementById('loginForm');
-      form.addEventListener('submit', async e => {
-        e.preventDefault();
-
-        const data = {
-          telefono: document.getElementById('telefono').value,
-          password: document.getElementById('password').value
-        };
-
-        const res = await fetch('https://tengohambre-backend.onrender.com/api/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
-
-        const json = await res.json();
-
-        if (res.ok) {
-          localStorage.setItem('token', json.token);
-          localStorage.setItem('rol', json.rol);
-          localStorage.setItem('userId', json.id);
-          window.location.href = json.rol === 'admin'
-            ? '/panel.html'
-            : `/cliente.html?id=${json.id}`;
-        } else {
-          alert('Error: ' + json.error);
-        }
-      });
-    });
-  </script>
-  <script>
+    
   document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('loginForm');
     form.addEventListener('submit', async (e) => {
@@ -135,6 +104,8 @@
       }
     });
   });
+</script>
+
 </script>
 
 </body>
