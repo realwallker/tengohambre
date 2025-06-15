@@ -29,47 +29,49 @@
 </head>
 <body>
   <div id="navbar"></div>
-<script>
-  fetch('/navbar.html')
-    .then(res => res.text())
-    .then(html => {
-      document.getElementById('navbar').innerHTML = html;
 
-      const rol = localStorage.getItem('rol');
-      const userId = localStorage.getItem('userId');
+  <script>
+    fetch('/navbar.html')
+      .then(res => res.text())
+      .then(html => {
+        document.getElementById('navbar').innerHTML = html;
 
-      let links = '';
+        const rol = localStorage.getItem('rol');
+        const userId = localStorage.getItem('userId');
 
-      if (rol === 'cliente') {
-        links = `
-          <a href="/cliente.html?id=${userId}">Mi Perfil</a> |
-          <a href="/promociones.html">Promos</a> |
-          <a href="/canjes.html?id=${userId}">Canjes</a> |
-          <a href="#" onclick="logout()">Cerrar sesión</a>
-        `;
-      } else if (rol === 'admin') {
-        links = `
-          <a href="/panel.html">Panel</a> |
-          <a href="#" onclick="logout()">Cerrar sesión</a>
-        `;
-      } else {
-        links = `
-          <a href="/login.html">Iniciar sesión</a> |
-          <a href="/registro.html">Registrarse</a>
-        `;
-      }
+        let links = '';
 
-      document.getElementById('nav-links').innerHTML = links;
-    });
+        if (rol === 'cliente') {
+          links = `
+            <a href="/cliente.html?id=${userId}">Mi Perfil</a> |
+            <a href="/promociones.html">Promos</a> |
+            <a href="/canjes.html?id=${userId}">Canjes</a> |
+            <a href="#" onclick="logout()">Cerrar sesión</a>
+          `;
+        } else if (rol === 'admin') {
+          links = `
+            <a href="/panel.html">Panel</a> |
+            <a href="#" onclick="logout()">Cerrar sesión</a>
+          `;
+        } else {
+          links = `
+            <a href="/login.html">Iniciar sesión</a> |
+            <a href="/registro.html">Registrarse</a>
+          `;
+        }
 
-  function logout() {
-    localStorage.clear();
-    window.location.href = '/login.html';
-  }
-</script>
+        document.getElementById('nav-links').innerHTML = links;
+      });
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = '/login.html';
+    }
+  </script>
 
   <nav>
     🍔 Tengo Hambre
+    <span id="nav-links"></span>
   </nav>
 
   <div class="container">
@@ -98,21 +100,25 @@
       window.location.href = '/login.html';
     }
 
-    // Set link dinámico
     document.getElementById('linkCanjes').href = `/canjes.html?id=${userId}`;
-
-    function logout() {
-      localStorage.clear();
-      window.location.href = '/login.html';
-    }
 
     const params = new URLSearchParams(window.location.search);
     const id = params.get('id');
 
-    fetch(`https://tengohambre-backend.onrender.com/api/clientes/${id}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+    if (!id) {
+      alert('ID no válido');
+      window.location.href = '/login.html';
+    }
+
+    fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${id}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
     })
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error('Error en la carga del perfil');
+        return res.json();
+      })
       .then(cliente => {
         document.getElementById('saludo').textContent = `Hola ${cliente.nombre} 👋`;
         document.getElementById('coins').textContent = cliente.hambreCoins;
@@ -123,9 +129,12 @@
           height: 160
         });
       })
-      .catch(() => {
-        document.body.innerHTML = '<p>Error al cargar el perfil.</p>';
+      .catch(err => {
+        console.error('Error al cargar el perfil:', err);
+        alert('No se pudo cargar tu perfil. Iniciá sesión nuevamente.');
+        logout();
       });
   </script>
+
 </body>
 </html>
