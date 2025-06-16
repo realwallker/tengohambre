@@ -1,65 +1,43 @@
-const db = require('./backend/db');
+require('dotenv').config();
+const db = require('./db');
 const bcrypt = require('bcrypt');
 const { v4: uuidv4 } = require('uuid');
 
-// Puedes cambiar estos valores libremente
-const adminData = {
-  telefono: 'admin001',
-  password: '2025admin001',
-  email: 'admin@tengo.com',
-  nombre: 'Admin'
-};
-
 (async () => {
-  const { telefono, password, email, nombre } = adminData;
+  const telefono = '99999';
+  const password = 'admin123';
+  const email = 'admin@tengohambre.com';
+  const nombre = 'Admin';
 
-  db.get('SELECT * FROM clientes WHERE telefono = ?', [telefono], async (err, row) => {
-    if (err) {
-      console.error('❌ Error al buscar admin:', err.message);
-      process.exit(1);
-    }
+  try {
+    const result = await db.query('SELECT * FROM clientes WHERE telefono = $1', [telefono]);
 
-    if (row) {
-      console.log('⚠️ Ya existe un usuario con ese teléfono:');
-      console.table({
-        id: row.id,
-        nombre: row.nombre,
-        telefono: row.telefono,
-        rol: row.rol
-      });
+    if (result.rows.length > 0) {
+      console.log('⚠️ El admin ya existe:', result.rows[0]);
       process.exit(0);
     }
 
-    try {
-      const hash = await bcrypt.hash(password, 10);
-      const id = uuidv4();
+    const hash = await bcrypt.hash(password, 10);
+    const id = uuidv4();
 
-      db.run(
-        `INSERT INTO clientes 
-           (id, nombre, telefono, email, password, rol, hambreCoins)
-         VALUES (?, ?, ?, ?, ?, 'admin', 0)`,
-        [id, nombre, telefono, email, hash],
-        err2 => {
-          if (err2) {
-            console.error('❌ Error al insertar admin:', err2.message);
-            process.exit(1);
-          }
+    await db.query(
+      `INSERT INTO clientes (id, nombre, telefono, email, password, rol, hambreCoins)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [id, nombre, telefono, email, hash, 'admin', 0]
+    );
 
-          console.log('✅ Admin creado correctamente:');
-          console.table({
-            id,
-            nombre,
-            telefono,
-            email,
-            rol: 'admin',
-            contraseña: password
-          });
-          process.exit(0);
-        }
-      );
-    } catch (e) {
-      console.error('❌ Error generando el hash de contraseña:', e.message);
-      process.exit(1);
-    }
-  });
+    console.log('✅ Admin creado con éxito');
+    console.table({
+      id,
+      nombre,
+      telefono,
+      email,
+      password,
+      rol: 'admin'
+    });
+    process.exit(0);
+  } catch (e) {
+    console.error('❌ Error al crear admin:', e);
+    process.exit(1);
+  }
 })();
