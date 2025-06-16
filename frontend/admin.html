@@ -178,10 +178,6 @@
   }
 
   try {
-    const loader = document.createElement('div');
-    loader.className = 'spinner';
-    info.appendChild(loader);
-
     const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${cliente.id}/cargar`, {
       method: 'POST',
       headers: {
@@ -191,28 +187,20 @@
       body: JSON.stringify({ monto })
     });
 
-    // Esto intentará parsear la respuesta como JSON incluso si no es 2xx
-    let data;
-    try {
-      data = await res.json();
-    } catch (e) {
-      throw new Error('Respuesta inválida del servidor');
-    }
+    const data = await res.json();
 
-    if (res.ok) {
+    if (res.ok && data.success) {
       alert('✅ Coins cargadas exitosamente');
       await fetchCliente(cliente.id); // refrescar perfil
     } else {
-      throw new Error(data.error || 'Error desconocido al cargar monedas');
+      throw new Error(data.error || data.message || 'Error desconocido al cargar monedas');
     }
   } catch (error) {
     console.error('Error al cargar monedas:', error);
     alert(`❌ ${error.message}`);
-  } finally {
-    const existing = document.querySelector('.spinner');
-    if (existing) existing.remove();
   }
 }
+
 
     const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
     scanner.render(decoded => {

@@ -131,7 +131,7 @@ async function fetchCliente(id) {
       }, 2500);
     }
 
-    async function cargar() {
+   async function cargar() {
   if (!cliente || !cliente.id) {
     alert('Ningún cliente seleccionado');
     return;
@@ -143,10 +143,6 @@ async function fetchCliente(id) {
   }
 
   try {
-    const loader = document.createElement('div');
-    loader.className = 'spinner';
-    info.appendChild(loader);
-
     const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${cliente.id}/cargar`, {
       method: 'POST',
       headers: {
@@ -156,28 +152,20 @@ async function fetchCliente(id) {
       body: JSON.stringify({ monto })
     });
 
-    // Esto intentará parsear la respuesta como JSON incluso si no es 2xx
-    let data;
-    try {
-      data = await res.json();
-    } catch (e) {
-      throw new Error('Respuesta inválida del servidor');
-    }
+    const data = await res.json();
 
-    if (res.ok) {
+    if (res.ok && data.success) {
       alert('✅ Coins cargadas exitosamente');
       await fetchCliente(cliente.id); // refrescar perfil
     } else {
-      throw new Error(data.error || 'Error desconocido al cargar monedas');
+      throw new Error(data.error || data.message || 'Error desconocido al cargar monedas');
     }
   } catch (error) {
     console.error('Error al cargar monedas:', error);
     alert(`❌ ${error.message}`);
-  } finally {
-    const existing = document.querySelector('.spinner');
-    if (existing) existing.remove();
   }
 }
+
 
 
 

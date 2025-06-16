@@ -172,7 +172,7 @@ app.post('/api/clientes/:id/cargar', authenticateJWT, authorizeRole('admin'), as
 
     if (updateError || insertError) throw updateError || insertError;
 
-    res.json({ message: 'Coins cargadas correctamente' });
+    return res.status(200).json({ success: true, message: 'Coins cargadas correctamente' });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Error al recargar coins' });
