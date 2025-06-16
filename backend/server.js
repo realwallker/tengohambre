@@ -9,16 +9,15 @@ const cors = require('cors');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET = process.env.JWT_SECRET || 'tu_clave_super_secreta';
+const JWT_SECRET = process.env.JWT_SECRET || 'clave_secreta_segura';
 
 app.use(cors({
   origin: 'https://tengohambre.vercel.app',
 }));
-
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../frontend')));
 
-// Autenticación y autorización
+// Middleware de autenticación
 function authenticateJWT(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'No token provided' });
@@ -30,10 +29,10 @@ function authenticateJWT(req, res, next) {
   });
 }
 
-function authorizeRole(...allowedRoles) {
+function authorizeRole(...roles) {
   return (req, res, next) => {
-    if (!req.user || !allowedRoles.includes(req.user.rol)) {
-      return res.status(403).json({ error: 'Access forbidden' });
+    if (!roles.includes(req.user.rol)) {
+      return res.status(403).json({ error: 'Acceso denegado' });
     }
     next();
   };
@@ -47,24 +46,27 @@ app.post('/api/registro', async (req, res) => {
   if (!nombre || !telefono || !email || !password) {
     return res.status(400).json({ error: 'Faltan datos' });
   }
+
   try {
     const hash = await bcrypt.hash(password, 10);
     const id = uuidv4();
+
     await db.query(
       `INSERT INTO clientes (id, nombre, telefono, email, password, rol, hambreCoins)
        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
       [id, nombre, telefono, email, hash, 'cliente', 0]
     );
-    res.json({ message: 'Registrado', id });
-  } catch (e) {
-    console.error(e);
+
+    res.json({ message: 'Registrado correctamente', id });
+  } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Error al registrar' });
   }
 });
 
 app.post('/api/login', async (req, res) => {
   const { telefono, password } = req.body;
-  if (!telefono || !password) return res.status(400).json({ error: 'Faltan teléfono o contraseña' });
+  if (!telefono || !password) return res.status(400).json({ error: 'Faltan datos' });
 
   try {
     const result = await db.query('SELECT * FROM clientes WHERE telefono = $1', [telefono]);
@@ -76,40 +78,28 @@ app.post('/api/login', async (req, res) => {
 
     const token = jwt.sign({ id: user.id, rol: user.rol }, JWT_SECRET, { expiresIn: '8h' });
     res.json({ token, rol: user.rol, id: user.id });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: 'Error interno' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al iniciar sesión' });
   }
 });
 
-app.get('/api/recargas/:clienteId', async (req, res) => {
-  try {
-    const { clienteId } = req.params;
-    const result = await db.query(
-      'SELECT * FROM recargas WHERE clienteId = $1 ORDER BY fecha DESC',
-      [clienteId]
-    );
-    res.status(200).json(result.rows);
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: 'Error al obtener recargas' });
-  }
-});
-
-// Rutas protegidas
+// Clientes
 app.get('/api/clientes', authenticateJWT, authorizeRole('admin'), async (req, res) => {
   try {
     const result = await db.query('SELECT id, nombre, telefono, email, rol, hambreCoins FROM clientes');
     res.json(result.rows);
-  } catch (e) {
-    console.error(e);
+  } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Error al obtener clientes' });
   }
 });
 
 app.get('/api/clientes/:id', authenticateJWT, async (req, res) => {
   const { id } = req.params;
-  if (req.user.rol === 'cliente' && req.user.id !== id) return res.status(403).json({ error: 'Acceso prohibido' });
+  if (req.user.rol === 'cliente' && req.user.id !== id) {
+    return res.status(403).json({ error: 'Acceso prohibido' });
+  }
 
   try {
     const result = await db.query(
@@ -118,25 +108,13 @@ app.get('/api/clientes/:id', authenticateJWT, async (req, res) => {
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Cliente no encontrado' });
     res.json(result.rows[0]);
-  } catch (e) {
-    console.error(e);
+  } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Error al buscar cliente' });
   }
 });
 
-app.delete('/api/clientes/:id', authenticateJWT, authorizeRole('admin'), async (req, res) => {
-  const { id } = req.params;
-  try {
-    await db.query('DELETE FROM recargas WHERE clienteId = $1', [id]);
-    const result = await db.query('DELETE FROM clientes WHERE id = $1', [id]);
-    if (result.rowCount === 0) return res.status(404).json({ error: 'Cliente no encontrado' });
-    res.json({ message: 'Cliente eliminado' });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: 'Error al eliminar cliente' });
-  }
-});
-
+// Recargas
 app.post('/api/clientes/:id/cargar', authenticateJWT, authorizeRole('admin'), async (req, res) => {
   const { id } = req.params;
   const { monto } = req.body;
@@ -156,16 +134,18 @@ app.post('/api/clientes/:id/cargar', authenticateJWT, authorizeRole('admin'), as
       [recargaId, id, monto, fecha]
     );
 
-    res.json({ message: 'Coins cargadas y registradas' });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: 'Error al cargar coins' });
+    res.json({ message: 'Coins cargadas correctamente' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al recargar coins' });
   }
 });
 
 app.get('/api/clientes/:id/recargas', authenticateJWT, async (req, res) => {
   const { id } = req.params;
-  if (req.user.rol === 'cliente' && req.user.id !== id) return res.status(403).json({ error: 'Acceso prohibido' });
+  if (req.user.rol === 'cliente' && req.user.id !== id) {
+    return res.status(403).json({ error: 'Acceso prohibido' });
+  }
 
   try {
     const result = await db.query(
@@ -173,14 +153,26 @@ app.get('/api/clientes/:id/recargas', authenticateJWT, async (req, res) => {
       [id]
     );
     res.json(result.rows);
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: 'Error al obtener historial' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al obtener recargas' });
   }
 });
 
-// Puedes agregar más rutas aquí...
+app.delete('/api/clientes/:id', authenticateJWT, authorizeRole('admin'), async (req, res) => {
+  const { id } = req.params;
+  try {
+    await db.query('DELETE FROM recargas WHERE clienteId = $1', [id]);
+    const result = await db.query('DELETE FROM clientes WHERE id = $1', [id]);
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Cliente no encontrado' });
+    res.json({ message: 'Cliente eliminado correctamente' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al eliminar cliente' });
+  }
+});
 
+// Inicio del servidor
 app.listen(PORT, () => {
-  console.log(`Servidor corriendo en http://localhost:${PORT}`);
+  console.log(`🚀 Servidor escuchando en http://localhost:${PORT}`);
 });
