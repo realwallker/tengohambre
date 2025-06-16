@@ -93,27 +93,35 @@
     let cliente = null;
 
     async function fetchCliente(id) {
-      const res = await fetch(`https://tengohambre-backend.onrender.com/api/clientes/${id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      try {
+        const res = await fetch(`https://tengohambre-backend.onrender.com/api/clientes/${id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
 
-      if (!res.ok) {
-        alert('Cliente no encontrado');
-        return;
+        if (!res.ok) throw new Error('Cliente no encontrado');
+
+        cliente = await res.json();
+
+        document.getElementById('info').innerHTML = `
+          <div class="cliente-info">
+            <h3>${cliente.nombre}</h3>
+            <p>Saldo actual: <strong>${cliente.hambreCoins}</strong> Coins</p>
+            <input type="number" id="monto" placeholder="¿Cuántas coins otorgar?">
+            <button id="btnCargar">Cargar Coins</button>
+          </div>
+        `;
+
+        document.getElementById('btnCargar').addEventListener('click', cargar);
+      } catch (err) {
+        document.getElementById('info').innerHTML = `<p style="color:red;">⚠️ Cliente no válido.</p>`;
+        setTimeout(() => {
+          scanner.clear();
+          scanner.render(decoded => {
+            scanner.clear();
+            fetchCliente(decoded);
+          });
+        }, 2000);
       }
-
-      cliente = await res.json();
-
-      document.getElementById('info').innerHTML = `
-        <div class="cliente-info">
-          <h3>${cliente.nombre}</h3>
-          <p>Saldo actual: <strong>${cliente.hambreCoins}</strong> Coins</p>
-          <input type="number" id="monto" placeholder="¿Cuántas coins otorgar?">
-          <button id="btnCargar">Cargar Coins</button>
-        </div>
-      `;
-
-      document.getElementById('btnCargar').addEventListener('click', cargar);
     }
 
     async function cargar() {
@@ -136,9 +144,9 @@
 
       if (res.ok) {
         alert('Coins cargadas exitosamente');
-        fetchCliente(cliente.id); // actualizar saldo
-        loadClientes(); // actualizar lista
-        // reiniciar escáner
+        fetchCliente(cliente.id);
+        loadClientes();
+
         setTimeout(() => {
           document.getElementById('info').innerHTML = '';
           scanner.clear();
