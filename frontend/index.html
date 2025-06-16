@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tengo Hambre 🍔</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(to right, #ffe0b2, #ffe6cc);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+      padding: 1rem;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      color: #d35400;
+    }
+
+    p {
+      font-size: 1.1rem;
+      margin: 1rem 0;
+    }
+
+    .btns {
+      display: flex;
+      gap: 1rem;
+      margin-top: 2rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btns a {
+      padding: 12px 24px;
+      background-color: #ff914d;
+      color: white;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+
+    .btns a:hover {
+      background-color: #e67e22;
+    }
+
+    img {
+      width: 150px;
+      margin-top: 2rem;
+      animation: float 2s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-8px); }
+      100% { transform: translateY(0px); }
+    }
+  </style>
+</head>
+<body>
+  <h1>🍔 Bienvenido a Tengo Hambre</h1>
+  <p>Canjeá, cargá y disfrutá tus HambreCoins en tu lugar favorito.</p>
+
+  <div class="btns">
+    <a href="/registro.html">Registrarme</a>
+    <a href="/login.html">Iniciar Sesión</a>
+  </div>
+
+  <img src="https://cdn-icons-png.flaticon.com/512/1046/1046784.png" alt="hamburger icon">
+</body>
+</html>
