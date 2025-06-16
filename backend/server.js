@@ -148,35 +148,44 @@ app.post('/api/clientes/:id/cargar', authenticateJWT, authorizeRole('admin'), as
   }
 
   try {
-    const { data: cliente, error: getError } = await supabase
-      .from('clientes')
-      .select('hambreCoins')
-      .eq('id', id)
-      .single();
+  const { data: cliente, error: getError } = await supabase
+    .from('clientes')
+    .select('hambreCoins')
+    .eq('id', id)
+    .single();
 
     if (getError || !cliente) throw getError || new Error('Cliente no encontrado');
 
-    const nuevoTotal = cliente.hambreCoins + parsedMonto;
+  const nuevoTotal = cliente.hambreCoins + monto;
 
-    const { error: updateError } = await supabase
-      .from('clientes')
-      .update({ hambreCoins: nuevoTotal })
-      .eq('id', id);
+  const { error: updateError } = await supabase
+    .from('clientes')
+    .update({ hambreCoins: nuevoTotal })
+    .eq('id', id);
 
-    const recargaId = uuidv4();
-    const fecha = new Date().toISOString();
+  const recargaId = uuidv4();
+  const fecha = new Date().toISOString();
 
     const { error: insertError } = await supabase
-      .from('recargas')
-      .insert([{ id: recargaId, clienteId: id, monto: parsedMonto, fecha }]);
+    .from('recargas')
+    .insert([{ id: recargaId, clienteId: id, monto, fecha }]);
 
-    if (updateError || insertError) throw updateError || insertError;
+  if (updateError || insertError) throw updateError || insertError;
 
-    res.status(200).json({ success: true, message: 'Coins cargadas correctamente' });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al recargar coins' });
-  }
+     // ✅ Aquí la respuesta clara que tu frontend espera:
+  return res.status(200).json({
+    success: true,
+    message: 'Coins cargadas correctamente',
+    nuevoTotal,
+  });
+} catch (error) {
+  console.error('❌ Error en /cargar:', error);
+  return res.status(500).json({
+    success: false,
+    error: 'Error al recargar coins',
+    details: error.message || error,
+  });
+}
 });
 
 // Obtener historial de recargas

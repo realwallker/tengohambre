@@ -23,6 +23,7 @@
 
     #info {
       margin-top: 2rem;
+      min-height: 100px;
       transition: opacity 0.3s ease;
     }
 
@@ -66,7 +67,7 @@
       width: 40px;
       height: 40px;
       animation: spin 1s linear infinite;
-      margin: 1rem auto;
+      margin: 2rem auto;
     }
 
     @keyframes spin {
@@ -89,10 +90,8 @@
       .then(res => res.text())
       .then(html => {
         document.getElementById('navbar').innerHTML = html;
-
         const rol = localStorage.getItem('rol');
         const userId = localStorage.getItem('userId');
-
         let links = '';
 
         if (rol === 'cliente') {
@@ -167,45 +166,42 @@
     }
 
     async function cargar() {
-  if (!cliente || !cliente.id) {
-    alert('Ningún cliente seleccionado');
-    return;
-  }
+      if (!cliente || !cliente.id) {
+        alert('Ningún cliente seleccionado');
+        return;
+      }
 
-  const monto = parseInt(document.getElementById('monto').value);
-  if (!monto || monto <= 0) {
-    return alert('Monto inválido');
-  }
+      const monto = parseInt(document.getElementById('monto').value);
+      if (!monto || monto <= 0) {
+        return alert('Monto inválido');
+      }
 
-  try {
-    const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${cliente.id}/cargar`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ monto })
-    });
+      info.innerHTML += '<div class="spinner"></div>';
 
-    const data = await res.json();
+      try {
+        const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${cliente.id}/cargar`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ monto })
+        });
 
-    // Imprimir para depurar
-    console.log('Respuesta:', res);
-    console.log('Datos:', data);
+        const data = await res.json();
+        console.log('Respuesta backend:', data);
 
-    if (res.ok && data?.success) {
-      alert('✅ ' + data.message);
-      await fetchCliente(cliente.id); // refrescar datos
-    } else {
-      alert('⚠️ ' + (data?.error || 'No se pudo cargar las coins'));
+        if (res.ok && data.error) {
+          alert('✅ ' + data.message);
+          await fetchCliente(cliente.id);
+        } else {
+          alert('⚠️ ' + (data.error || 'Error al cargar las coins'));
+        }
+      } catch (error) {
+        console.error('❌ Error al cargar monedas:', error);
+        alert('❌ Error de red o servidor');
+      }
     }
-  } catch (error) {
-    console.error('Error al cargar monedas:', error);
-    alert('❌ Error de red o servidor');
-  }
-}
-
-
 
     const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
     scanner.render(decoded => {
