@@ -8,27 +8,75 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
   <style>
-    body { font-family: 'Poppins', sans-serif; text-align: center; padding: 2rem; }
-    #reader { width: 300px; margin: auto; }
-    #info { margin-top: 2rem; }
+    body {
+      font-family: 'Poppins', sans-serif;
+      text-align: center;
+      padding: 2rem;
+      background-color: #fef9f4;
+      color: #333;
+    }
+
+    #reader {
+      width: 300px;
+      margin: auto;
+    }
+
+    #info {
+      margin-top: 2rem;
+      transition: opacity 0.3s ease;
+    }
+
     input, button {
       padding: 10px;
       margin: 0.5rem;
       font-size: 16px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      transition: all 0.2s ease-in-out;
     }
+
+    input:focus {
+      border-color: #ffa94d;
+      outline: none;
+      box-shadow: 0 0 4px rgba(255, 153, 0, 0.3);
+    }
+
+    button {
+      background-color: #ff914d;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #e67e22;
+    }
+
     .cliente-info {
       background-color: #fff3cd;
-      padding: 1rem;
-      border-radius: 10px;
+      padding: 1.5rem;
+      border-radius: 12px;
       display: inline-block;
+      animation: fadeIn 0.5s ease-in-out;
     }
-    nav {
-      text-align: right;
-      padding: 1rem;
+
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #ffa94d;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 1rem auto;
     }
-    nav a {
-      margin-left: 10px;
-      font-weight: bold;
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
     }
   </style>
 </head>
@@ -76,19 +124,14 @@
     }
   </script>
 
-  <nav>
-    🍔 Tengo Hambre
-    <span id="nav-links"></span>
-  </nav>
-
   <h2>📷 Escanear Cliente</h2>
   <div id="reader"></div>
-
   <div id="info"></div>
 
   <script>
     const token = localStorage.getItem('token');
     const rol = localStorage.getItem('rol');
+    const info = document.getElementById('info');
 
     if (!token || rol !== 'admin') {
       alert('Acceso denegado');
@@ -97,73 +140,74 @@
 
     let cliente = null;
 
-async function fetchCliente(id) {
-  try {
-    const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${id}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
+    async function fetchCliente(id) {
+      try {
+        info.innerHTML = '<div class="spinner"></div>';
+        const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
 
-    if (!res.ok) throw new Error('Cliente no encontrado');
+        if (!res.ok) throw new Error('Cliente no encontrado');
+        const data = await res.json();
+        cliente = data;
 
-    const data = await res.json();
-    cliente = data;
-
-    document.getElementById('info').innerHTML = `
-      <div class="cliente-info">
-        <h3>${cliente.nombre}</h3>
-        <p>Saldo actual: <strong>${cliente.hambreCoins}</strong> Coins</p>
-        <input type="number" id="monto" placeholder="¿Cuántas coins otorgar?">
-        <button onclick="cargar()">Cargar Coins</button>
-      </div>
-    `;
-  } catch (err) {
-    document.getElementById('info').innerHTML = `<p style="color:red;">⚠️ No se pudo cargar el cliente. Intentá nuevamente.</p>`;
-    console.error(err);
-  }
-}
-
-    async function cargar() {
-  if (!cliente || !cliente.id) {
-    alert('Ningún cliente seleccionado');
-    return;
-  }
-
-  const monto = parseInt(document.getElementById('monto').value);
-  if (!monto || monto <= 0) {
-    return alert('Monto inválido');
-  }
-
-  try {
-    const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${cliente.id}/cargar`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ monto })
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(data.error || 'Error desconocido');
+        info.innerHTML = `
+          <div class="cliente-info">
+            <h3>${cliente.nombre}</h3>
+            <p>Saldo actual: <strong>${cliente.hambreCoins}</strong> Coins</p>
+            <input type="number" id="monto" placeholder="¿Cuántas coins otorgar?">
+            <br>
+            <button onclick="cargar()">Cargar Coins</button>
+          </div>
+        `;
+      } catch (err) {
+        info.innerHTML = `<p style="color:red;">❌ No se pudo cargar el cliente. Intentá nuevamente.</p>`;
+        console.error(err);
+      }
     }
 
-    alert('✅ Coins cargadas exitosamente');
+    async function cargar() {
+      if (!cliente || !cliente.id) {
+        alert('Ningún cliente seleccionado');
+        return;
+      }
 
-    // Refrescar la vista del cliente
-    await fetchCliente(cliente.id);
-  } catch (error) {
-    console.error('Error al cargar monedas:', error);
-    alert('❌ Error al cargar monedas');
-  }
-}
+      const monto = parseInt(document.getElementById('monto').value);
+      if (!monto || monto <= 0) {
+        return alert('Monto inválido');
+      }
 
+      try {
+        info.innerHTML += `<div class="spinner"></div>`;
+        const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${cliente.id}/cargar`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ monto })
+        });
 
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error || 'Error desconocido');
+
+        alert('✅ Coins cargadas exitosamente');
+        await fetchCliente(cliente.id); // actualiza la info
+      } catch (error) {
+        console.error('Error al cargar monedas:', error);
+        alert('❌ Error al cargar monedas');
+        info.innerHTML = '';
+      }
+    }
 
     const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
     scanner.render(decoded => {
       scanner.clear();
+      if (!decoded) {
+        info.innerHTML = `<p style="color:red;">❌ Código QR inválido.</p>`;
+        return;
+      }
       fetchCliente(decoded);
     });
   </script>

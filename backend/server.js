@@ -137,12 +137,15 @@ app.get('/api/clientes/:id', authenticateJWT, async (req, res) => {
   }
 });
 
-// Recarga de hambreCoins
+// Recarga de hambreCoins (puede ser positiva o negativa)
 app.post('/api/clientes/:id/cargar', authenticateJWT, authorizeRole('admin'), async (req, res) => {
   const { id } = req.params;
   const { monto } = req.body;
 
-  if (!monto || monto <= 0) return res.status(400).json({ error: 'Monto inválido' });
+  const parsedMonto = Number(monto);
+  if (!Number.isFinite(parsedMonto)) {
+    return res.status(400).json({ error: 'Monto inválido' });
+  }
 
   try {
     const { data: cliente, error: getError } = await supabase
@@ -153,7 +156,7 @@ app.post('/api/clientes/:id/cargar', authenticateJWT, authorizeRole('admin'), as
 
     if (getError || !cliente) throw getError || new Error('Cliente no encontrado');
 
-    const nuevoTotal = cliente.hambreCoins + monto;
+    const nuevoTotal = cliente.hambreCoins + parsedMonto;
 
     const { error: updateError } = await supabase
       .from('clientes')
@@ -165,7 +168,7 @@ app.post('/api/clientes/:id/cargar', authenticateJWT, authorizeRole('admin'), as
 
     const { error: insertError } = await supabase
       .from('recargas')
-      .insert([{ id: recargaId, clienteId: id, monto, fecha }]);
+      .insert([{ id: recargaId, clienteId: id, monto: parsedMonto, fecha }]);
 
     if (updateError || insertError) throw updateError || insertError;
 
