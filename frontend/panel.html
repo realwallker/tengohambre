@@ -133,11 +133,14 @@ async function fetchCliente(id) {
 
     async function cargar() {
   if (!cliente || !cliente.id) {
-    return alert('Cliente no cargado correctamente');
+    alert('Ningún cliente seleccionado');
+    return;
   }
 
   const monto = parseInt(document.getElementById('monto').value);
-  if (!monto || monto <= 0) return alert('Monto inválido');
+  if (!monto || monto <= 0) {
+    return alert('Monto inválido');
+  }
 
   try {
     const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${cliente.id}/cargar`, {
@@ -149,15 +152,22 @@ async function fetchCliente(id) {
       body: JSON.stringify({ monto })
     });
 
-    if (!res.ok) throw new Error('Error al cargar');
+    const data = await res.json();
 
-    alert('Coins cargadas correctamente');
-    fetchCliente(cliente.id); // recargar para ver saldo actualizado
-  } catch (err) {
-    alert('Error al cargar monedas');
-    console.error(err);
+    if (!res.ok) {
+      throw new Error(data.error || 'Error desconocido');
+    }
+
+    alert('✅ Coins cargadas exitosamente');
+
+    // Refrescar la vista del cliente
+    await fetchCliente(cliente.id);
+  } catch (error) {
+    console.error('Error al cargar monedas:', error);
+    alert('❌ Error al cargar monedas');
   }
 }
+
 
 
     async function loadClientes() {
