@@ -74,6 +74,13 @@
 
   <h2>📷 Escanear Cliente</h2>
   <div id="reader"></div>
+
+  <div id="manual-busqueda" style="margin-top:2rem;">
+    <h3>🔍 Buscar Cliente Manualmente</h3>
+    <input type="text" id="telefonoManual" placeholder="Teléfono del cliente">
+    <button id="btnBuscarTelefono" onclick="buscarPorTelefono()">Buscar</button>
+  </div>
+
   <div id="info"></div>
 
   <h2>👥 Clientes Registrados</h2>
@@ -98,9 +105,12 @@
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
-        if (!res.ok) throw new Error('Cliente no encontrado');
+        if (!res.ok) throw new Error('No encontrado');
 
-        cliente = await res.json();
+        const data = await res.json();
+        if (!data || !data.nombre || !data.hambreCoins) throw new Error('Datos incompletos');
+
+        cliente = data;
 
         document.getElementById('info').innerHTML = `
           <div class="cliente-info">
@@ -113,7 +123,7 @@
 
         document.getElementById('btnCargar').addEventListener('click', cargar);
       } catch (err) {
-        document.getElementById('info').innerHTML = `<p style="color:red;">⚠️ Cliente no válido.</p>`;
+        document.getElementById('info').innerHTML = `<p style="color:red;">⚠️ No se pudo cargar el cliente. Intentá nuevamente.</p>`;
         setTimeout(() => {
           scanner.clear();
           scanner.render(decoded => {
@@ -174,15 +184,15 @@
           <tr>
             <th>Nombre</th>
             <th>Teléfono</th>
-            <th>Coins</th>
-            <th>Ver</th>
+            <th>Email</th>
+            <th>HambreCoins</th>
           </tr>
           ${lista.map(c => `
             <tr>
               <td>${c.nombre}</td>
               <td>${c.telefono}</td>
+              <td>${c.email}</td>
               <td>${c.hambreCoins}</td>
-              <td><button onclick="fetchCliente('${c.id}')">Seleccionar</button></td>
             </tr>
           `).join('')}
         </table>
@@ -190,6 +200,36 @@
 
       document.getElementById('clientes').innerHTML = html;
     }
+
+    async function buscarPorTelefono() {
+      const telefono = document.getElementById('telefonoManual').value.trim();
+      if (!telefono) return alert('Ingresá un teléfono');
+
+      try {
+        const res = await fetch('https://tengohambre-backend.onrender.com/api/clientes', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!res.ok) throw new Error('Error al buscar');
+
+        const lista = await res.json();
+        const encontrado = lista.find(c => c.telefono === telefono);
+
+        if (!encontrado) {
+          document.getElementById('info').innerHTML = `<p style="color:red;">⚠️ Cliente no encontrado.</p>`;
+          return;
+        }
+
+        fetchCliente(encontrado.id);
+      } catch (err) {
+        alert('Error al buscar cliente.');
+      }
+    }
+
+    // Soporte para presionar Enter en el campo de teléfono
+    document.getElementById('telefonoManual').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') buscarPorTelefono();
+    });
 
     const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
     scanner.render(decoded => {
