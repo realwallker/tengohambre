@@ -99,7 +99,7 @@
 
 async function fetchCliente(id) {
   try {
-    const res = await fetch(`https://tengohambre-backend.onrender.com/api/clientes/${id}`, {
+    const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${id}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
 
@@ -140,7 +140,7 @@ async function fetchCliente(id) {
   if (!monto || monto <= 0) return alert('Monto inválido');
 
   try {
-    const res = await fetch(`https://tengohambre-backend.onrender.com/api/clientes/${cliente.id}/cargar`, {
+    const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${cliente.id}/cargar`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -161,7 +161,7 @@ async function fetchCliente(id) {
 
 
     async function loadClientes() {
-      const res = await fetch(`https://tengohambre-backend.onrender.com/api/clientes`, {
+      const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -196,7 +196,7 @@ async function fetchCliente(id) {
       const tel = document.getElementById('telefonoManual').value.trim();
       if (!tel) return alert('Ingrese un número de teléfono');
 
-      const res = await fetch(`https://tengohambre-backend.onrender.com/api/clientes`, {
+      const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 

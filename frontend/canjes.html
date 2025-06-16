@@ -98,7 +98,7 @@
 
     async function cargarHistorial() {
       try {
-        const clienteRes = await fetch(`https://tengohambre-backend.onrender.com/api/clientes/${id}`, {
+        const clienteRes = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${id}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -107,7 +107,7 @@
         const cliente = await clienteRes.json();
         document.getElementById('nombreCliente').textContent = `Hola ${cliente.nombre}, estos son tus movimientos`;
 
-        const recargasRes = await fetch(`https://tengohambre-backend.onrender.com/api/recargas/${id}`, {
+        const recargasRes = await fetch(`https://tengo-hambre-backend.onrender.com/api/recargas/${id}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 

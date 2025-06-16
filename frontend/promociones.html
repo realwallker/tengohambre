@@ -99,7 +99,7 @@
 
     async function cargarPromos() {
       try {
-        const res = await fetch(`https://tengohambre-backend.onrender.com/api/clientes/${userId}`, {
+        const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${userId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -136,7 +136,7 @@
       if (!confirmacion) return;
 
       try {
-        const res = await fetch(`https://tengohambre-backend.onrender.com/api/clientes/${userId}/cargar`, {
+        const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${userId}/cargar`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
