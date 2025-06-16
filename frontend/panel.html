@@ -97,31 +97,30 @@
 
     let cliente = null;
 
-    async function fetchCliente(id) {
-      try {
-        const res = await fetch(`https://tengohambre-backend.onrender.com/api/clientes/${id}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+async function fetchCliente(id) {
+  try {
+    const res = await fetch(`https://tengohambre-backend.onrender.com/api/clientes/${id}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
 
-        if (!res.ok) throw new Error('No encontrado');
-        const data = await res.json();
-        cliente = data;
+    if (!res.ok) throw new Error('Cliente no encontrado');
 
-        document.getElementById('info').innerHTML = `
-          <div class="cliente-info">
-            <h3>${cliente.nombre}</h3>
-            <p>Saldo actual: <strong>${cliente.hambreCoins}</strong> Coins</p>
-            <input type="number" id="monto" placeholder="¿Cuántas coins otorgar?">
-            <button id="btnCargar">Cargar Coins</button>
-          </div>
-        `;
+    const data = await res.json();
+    cliente = data;
 
-        document.getElementById('btnCargar').addEventListener('click', cargar);
-      } catch (err) {
-        document.getElementById('info').innerHTML = `<p style="color:red;">⚠️ No se pudo cargar el cliente. Escaneá nuevamente.</p>`;
-        reintentarEscaneo();
-      }
-    }
+    document.getElementById('info').innerHTML = `
+      <div class="cliente-info">
+        <h3>${cliente.nombre}</h3>
+        <p>Saldo actual: <strong>${cliente.hambreCoins}</strong> Coins</p>
+        <input type="number" id="monto" placeholder="¿Cuántas coins otorgar?">
+        <button onclick="cargar()">Cargar Coins</button>
+      </div>
+    `;
+  } catch (err) {
+    document.getElementById('info').innerHTML = `<p style="color:red;">⚠️ No se pudo cargar el cliente. Intentá nuevamente.</p>`;
+    console.error(err);
+  }
+}
 
     function reintentarEscaneo() {
       setTimeout(() => {
@@ -133,29 +132,33 @@
     }
 
     async function cargar() {
-      const monto = parseInt(document.getElementById('monto').value);
-      if (!cliente || !cliente.id) return alert('Cliente inválido');
-      if (!monto || monto <= 0) return alert('Monto inválido');
+  if (!cliente || !cliente.id) {
+    return alert('Cliente no cargado correctamente');
+  }
 
-      const res = await fetch(`https://tengohambre-backend.onrender.com/api/clientes/${cliente.id}/cargar`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ monto })
-      });
+  const monto = parseInt(document.getElementById('monto').value);
+  if (!monto || monto <= 0) return alert('Monto inválido');
 
-      if (res.ok) {
-        alert('Coins cargadas con éxito');
-        fetchCliente(cliente.id);
-        loadClientes();
-        document.getElementById('info').innerHTML = '';
-        reintentarEscaneo();
-      } else {
-        alert('Error al cargar coins');
-      }
-    }
+  try {
+    const res = await fetch(`https://tengohambre-backend.onrender.com/api/clientes/${cliente.id}/cargar`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ monto })
+    });
+
+    if (!res.ok) throw new Error('Error al cargar');
+
+    alert('Coins cargadas correctamente');
+    fetchCliente(cliente.id); // recargar para ver saldo actualizado
+  } catch (err) {
+    alert('Error al cargar monedas');
+    console.error(err);
+  }
+}
+
 
     async function loadClientes() {
       const res = await fetch(`https://tengohambre-backend.onrender.com/api/clientes`, {
