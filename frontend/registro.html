@@ -83,12 +83,14 @@
     const token = localStorage.getItem('token');
     const rol = localStorage.getItem('rol');
     const userId = localStorage.getItem('userId');
+
     if (token && rol && userId) {
       window.location.href = rol === 'admin' ? '/panel.html' : `/cliente.html?id=${userId}`;
     }
 
     document.addEventListener('DOMContentLoaded', () => {
       const form = document.getElementById('registroForm');
+
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const data = Object.fromEntries(new FormData(form).entries());
@@ -103,14 +105,14 @@
           const json = await res.json();
 
           if (res.ok) {
-            alert('Registro exitoso. Iniciá sesión.');
+            alert('🎉 Registro exitoso. Ahora podés iniciar sesión.');
             window.location.href = '/login.html';
           } else {
-            alert('Error: ' + (json.error || 'No se pudo registrar'));
+            alert('⚠️ Error: ' + (json.error || 'No se pudo registrar'));
           }
         } catch (err) {
-          alert('Error de conexión con el servidor');
           console.error(err);
+          alert('❌ Error de conexión con el servidor');
         }
       });
     });

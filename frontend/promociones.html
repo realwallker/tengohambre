@@ -21,48 +21,49 @@
   </style>
 </head>
 <body>
-    <div id="navbar"></div>
-<script>
-  fetch('/navbar.html')
-    .then(res => res.text())
-    .then(html => {
-      document.getElementById('navbar').innerHTML = html;
+  <div id="navbar"></div>
+  <script>
+    fetch('/navbar.html')
+      .then(res => res.text())
+      .then(html => {
+        document.getElementById('navbar').innerHTML = html;
 
-      const rol = localStorage.getItem('rol');
-      const userId = localStorage.getItem('userId');
+        const rol = localStorage.getItem('rol');
+        const userId = localStorage.getItem('userId');
 
-      let links = '';
+        let links = '';
 
-      if (rol === 'cliente') {
-        links = `
-          <a href="/cliente.html?id=${userId}">Mi Perfil</a> |
-          <a href="/promociones.html">Promos</a> |
-          <a href="/canjes.html?id=${userId}">Canjes</a> |
-          <a href="#" onclick="logout()">Cerrar sesión</a>
-        `;
-      } else if (rol === 'admin') {
-        links = `
-          <a href="/panel.html">Panel</a> |
-          <a href="#" onclick="logout()">Cerrar sesión</a>
-        `;
-      } else {
-        links = `
-          <a href="/login.html">Iniciar sesión</a> |
-          <a href="/registro.html">Registrarse</a>
-        `;
-      }
+        if (rol === 'cliente') {
+          links = `
+            <a href="/cliente.html?id=${userId}">Mi Perfil</a> |
+            <a href="/promociones.html">Promos</a> |
+            <a href="/canjes.html?id=${userId}">Canjes</a> |
+            <a href="#" onclick="logout()">Cerrar sesión</a>
+          `;
+        } else if (rol === 'admin') {
+          links = `
+            <a href="/panel.html">Panel</a> |
+            <a href="#" onclick="logout()">Cerrar sesión</a>
+          `;
+        } else {
+          links = `
+            <a href="/login.html">Iniciar sesión</a> |
+            <a href="/registro.html">Registrarse</a>
+          `;
+        }
 
-      document.getElementById('nav-links').innerHTML = links;
-    });
+        document.getElementById('nav-links').innerHTML = links;
+      });
 
-  function logout() {
-    localStorage.clear();
-    window.location.href = '/login.html';
-  }
-</script>
+    function logout() {
+      localStorage.clear();
+      window.location.href = '/login.html';
+    }
+  </script>
 
   <nav>
     🍔 Tengo Hambre
+    <span id="nav-links"></span>
   </nav>
 
   <div class="container">
@@ -71,7 +72,7 @@
     <div id="promos"></div>
 
     <p style="margin-top:2rem;">
-      <a href="/cliente.html?id=" id="perfilLink">← Volver a mi perfil</a>
+      <a href="#" id="perfilLink">← Volver a mi perfil</a>
     </p>
     <button onclick="logout()">Cerrar sesión</button>
   </div>
@@ -88,11 +89,6 @@
 
     document.getElementById('perfilLink').href = `/cliente.html?id=${userId}`;
 
-    function logout() {
-      localStorage.clear();
-      window.location.href = '/login.html';
-    }
-
     const promos = [
       { id: 1, nombre: 'Sánduche Clásico', costo: 10 },
       { id: 2, nombre: 'Bebida Grande', costo: 5 },
@@ -102,26 +98,35 @@
     let coins = 0;
 
     async function cargarPromos() {
-      const res = await fetch(`https://tengohambre-backend.onrender.com/api/clientes/${userId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const cliente = await res.json();
-      coins = cliente.hambreCoins;
+      try {
+        const res = await fetch(`https://tengohambre-backend.onrender.com/api/clientes/${userId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
 
-      const contenedor = document.getElementById('promos');
-      promos.forEach(promo => {
-        const div = document.createElement('div');
-        div.className = 'promo';
-        div.innerHTML = `
-          <h3>${promo.nombre}</h3>
-          <p>Costo: ${promo.costo} Coins</p>
-          <button onclick="canjear(${promo.costo}, '${promo.nombre}')"
-            ${coins < promo.costo ? 'disabled' : ''}>
-            Canjear
-          </button>
-        `;
-        contenedor.appendChild(div);
-      });
+        if (!res.ok) throw new Error('Error al cargar usuario');
+
+        const cliente = await res.json();
+        coins = cliente.hambreCoins;
+
+        const contenedor = document.getElementById('promos');
+        contenedor.innerHTML = '';
+
+        promos.forEach(promo => {
+          const div = document.createElement('div');
+          div.className = 'promo';
+          div.innerHTML = `
+            <h3>${promo.nombre}</h3>
+            <p>Costo: ${promo.costo} Coins</p>
+            <button onclick="canjear(${promo.costo}, '${promo.nombre}')" ${coins < promo.costo ? 'disabled' : ''}>
+              Canjear
+            </button>
+          `;
+          contenedor.appendChild(div);
+        });
+      } catch (err) {
+        console.error(err);
+        alert('No se pudieron cargar las promociones');
+      }
     }
 
     async function canjear(costo, promoNombre) {
@@ -130,18 +135,24 @@
       const confirmacion = confirm(`¿Confirmás canjear ${costo} Coins por "${promoNombre}"?`);
       if (!confirmacion) return;
 
-      // Restar coins en backend
-      await fetch(`https://tengohambre-backend.onrender.com/api/clientes/${userId}/cargar`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ monto: -costo }) // se descuenta
-      });
+      try {
+        const res = await fetch(`https://tengohambre-backend.onrender.com/api/clientes/${userId}/cargar`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ monto: -costo })
+        });
 
-      alert(`Canjeado: ${promoNombre}`);
-      location.reload();
+        if (!res.ok) throw new Error('Error al canjear');
+
+        alert(`Canjeado: ${promoNombre}`);
+        location.reload();
+      } catch (err) {
+        console.error(err);
+        alert('Error al realizar el canje');
+      }
     }
 
     cargarPromos();

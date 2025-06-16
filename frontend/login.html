@@ -18,7 +18,6 @@
 
         const rol = localStorage.getItem('rol');
         const userId = localStorage.getItem('userId');
-
         let links = '';
 
         if (rol === 'cliente') {
@@ -58,12 +57,12 @@
     <h2>Iniciar sesión</h2>
     <p>¡Bienvenido de nuevo! Ingresá tus datos para entrar.</p>
 
-    <form id="loginForm">
-      <label for="telefono">Teléfono</label>
-      <input name="telefono" id="telefono" required>
+    <form id="loginForm" autocomplete="off">
+      <label for="telefono">📱 Teléfono</label>
+      <input name="telefono" id="telefono" required placeholder="Ej: 1122334455">
 
-      <label for="password">Contraseña</label>
-      <input name="password" id="password" type="password" required>
+      <label for="password">🔒 Contraseña</label>
+      <input name="password" id="password" type="password" required placeholder="Tu contraseña">
 
       <button type="submit">Entrar</button>
     </form>
@@ -77,12 +76,14 @@
     const token = localStorage.getItem('token');
     const rol = localStorage.getItem('rol');
     const userId = localStorage.getItem('userId');
+
     if (token && rol && userId) {
       window.location.href = rol === 'admin' ? '/panel.html' : `/cliente.html?id=${userId}`;
     }
 
     document.addEventListener('DOMContentLoaded', () => {
       const form = document.getElementById('loginForm');
+
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const data = Object.fromEntries(new FormData(form).entries());
@@ -100,17 +101,17 @@
             localStorage.setItem('token', json.token);
             localStorage.setItem('userId', json.id);
             localStorage.setItem('rol', json.rol);
+
             window.location.href = json.rol === 'admin' ? '/panel.html' : `/cliente.html?id=${json.id}`;
           } else {
-            alert(json.error || 'Credenciales inválidas');
+            alert(json.error || 'Teléfono o contraseña incorrectos');
           }
         } catch (err) {
-          alert('Error de conexión con el servidor');
-          console.error(err);
+          alert('❌ Error de conexión con el servidor');
+          console.error('Login error:', err);
         }
       });
     });
   </script>
-
 </body>
 </html>

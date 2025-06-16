@@ -44,12 +44,10 @@
       .then(res => res.text())
       .then(html => {
         document.getElementById('navbar').innerHTML = html;
-
         const rol = localStorage.getItem('rol');
         const userId = localStorage.getItem('userId');
 
         let links = '';
-
         if (rol === 'cliente') {
           links = `<a href="/cliente.html?id=${userId}">Mi Perfil</a> |
                    <a href="/promociones.html">Promos</a> |
@@ -78,7 +76,7 @@
   <div id="manual-busqueda" style="margin-top:2rem;">
     <h3>🔍 Buscar Cliente Manualmente</h3>
     <input type="text" id="telefonoManual" placeholder="Teléfono del cliente">
-    <button id="btnBuscarTelefono" onclick="buscarPorTelefono()">Buscar</button>
+    <button onclick="buscarPorTelefono()">Buscar</button>
   </div>
 
   <div id="info"></div>
@@ -106,10 +104,7 @@
         });
 
         if (!res.ok) throw new Error('No encontrado');
-
         const data = await res.json();
-        if (!data || !data.nombre || !data.hambreCoins) throw new Error('Datos incompletos');
-
         cliente = data;
 
         document.getElementById('info').innerHTML = `
@@ -123,52 +118,47 @@
 
         document.getElementById('btnCargar').addEventListener('click', cargar);
       } catch (err) {
-        document.getElementById('info').innerHTML = `<p style="color:red;">⚠️ No se pudo cargar el cliente. Intentá nuevamente.</p>`;
-        setTimeout(() => {
-          scanner.clear();
-          scanner.render(decoded => {
-            scanner.clear();
-            fetchCliente(decoded);
-          });
-        }, 2000);
+        document.getElementById('info').innerHTML = `<p style="color:red;">⚠️ No se pudo cargar el cliente. Escaneá nuevamente.</p>`;
+        reintentarEscaneo();
       }
     }
 
-    async function cargar() {
-      if (!cliente || !cliente.id) {
-        alert('Ningún cliente seleccionado');
-        return;
-      }
+    function reintentarEscaneo() {
+      setTimeout(() => {
+        scanner.clear();
+        scanner.render(decoded => {
+          fetchCliente(decoded);
+        });
+      }, 2500);
+    }
 
+    async function cargar() {
       const monto = parseInt(document.getElementById('monto').value);
+      if (!cliente || !cliente.id) return alert('Cliente inválido');
       if (!monto || monto <= 0) return alert('Monto inválido');
 
       const res = await fetch(`https://tengohambre-backend.onrender.com/api/clientes/${cliente.id}/cargar`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ monto })
       });
 
       if (res.ok) {
-        alert('Coins cargadas exitosamente');
+        alert('Coins cargadas con éxito');
         fetchCliente(cliente.id);
         loadClientes();
-
-        setTimeout(() => {
-          document.getElementById('info').innerHTML = '';
-          scanner.clear();
-          scanner.render(decoded => fetchCliente(decoded));
-        }, 1000);
+        document.getElementById('info').innerHTML = '';
+        reintentarEscaneo();
       } else {
         alert('Error al cargar coins');
       }
     }
 
     async function loadClientes() {
-      const res = await fetch('https://tengohambre-backend.onrender.com/api/clientes', {
+      const res = await fetch(`https://tengohambre-backend.onrender.com/api/clientes`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -178,7 +168,6 @@
       }
 
       const lista = await res.json();
-
       const html = `
         <table>
           <tr>
@@ -197,40 +186,30 @@
           `).join('')}
         </table>
       `;
-
       document.getElementById('clientes').innerHTML = html;
     }
 
     async function buscarPorTelefono() {
-      const telefono = document.getElementById('telefonoManual').value.trim();
-      if (!telefono) return alert('Ingresá un teléfono');
+      const tel = document.getElementById('telefonoManual').value.trim();
+      if (!tel) return alert('Ingrese un número de teléfono');
 
-      try {
-        const res = await fetch('https://tengohambre-backend.onrender.com/api/clientes', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+      const res = await fetch(`https://tengohambre-backend.onrender.com/api/clientes`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
 
-        if (!res.ok) throw new Error('Error al buscar');
+      if (!res.ok) return alert('Error al buscar');
 
-        const lista = await res.json();
-        const encontrado = lista.find(c => c.telefono === telefono);
-
-        if (!encontrado) {
-          document.getElementById('info').innerHTML = `<p style="color:red;">⚠️ Cliente no encontrado.</p>`;
-          return;
-        }
-
-        fetchCliente(encontrado.id);
-      } catch (err) {
-        alert('Error al buscar cliente.');
+      const clientes = await res.json();
+      const encontrado = clientes.find(c => c.telefono === tel);
+      if (!encontrado) {
+        document.getElementById('info').innerHTML = `<p style="color:red;">⚠️ Cliente no encontrado.</p>`;
+        return;
       }
+
+      fetchCliente(encontrado.id);
     }
 
-    // Soporte para presionar Enter en el campo de teléfono
-    document.getElementById('telefonoManual').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') buscarPorTelefono();
-    });
-
+    // Escáner QR
     const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
     scanner.render(decoded => {
       scanner.clear();

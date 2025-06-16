@@ -1,113 +1,156 @@
 <!DOCTYPE html>
-<nav style="text-align: right;">
-  <a href="/cliente.html?id=USER_ID">Mi Perfil</a> |
-  <a href="/promociones.html">Promos</a> |
-  <a href="/canjes.html?id=USER_ID">Canjes</a> |
-  <a href="#" onclick="logout()">Cerrar sesión</a>
-</nav>
 <html lang="es">
 <head>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/styles.css">
   <meta charset="UTF-8">
   <title>Admin Scanner - Tengo Hambre</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="https://unpkg.com/html5-qrcode"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
   <style>
-    body { font-family: sans-serif; text-align: center; padding:2rem; }
-    #reader { width:300px; margin:auto; }
-    #info { margin-top:1rem; }
-    input, button { margin:0.5rem; padding:8px; }
+    body { font-family: 'Poppins', sans-serif; text-align: center; padding: 2rem; }
+    #reader { width: 300px; margin: auto; }
+    #info { margin-top: 2rem; }
+    input, button {
+      padding: 10px;
+      margin: 0.5rem;
+      font-size: 16px;
+    }
+    .cliente-info {
+      background-color: #fff3cd;
+      padding: 1rem;
+      border-radius: 10px;
+      display: inline-block;
+    }
+    nav {
+      text-align: right;
+      padding: 1rem;
+    }
+    nav a {
+      margin-left: 10px;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
+
   <div id="navbar"></div>
-<script>
-  fetch('/navbar.html')
-    .then(res => res.text())
-    .then(html => {
-      document.getElementById('navbar').innerHTML = html;
 
-      const rol = localStorage.getItem('rol');
-      const userId = localStorage.getItem('userId');
+  <script>
+    fetch('/navbar.html')
+      .then(res => res.text())
+      .then(html => {
+        document.getElementById('navbar').innerHTML = html;
 
-      let links = '';
+        const rol = localStorage.getItem('rol');
+        const userId = localStorage.getItem('userId');
 
-      if (rol === 'cliente') {
-        links = `
-          <a href="/cliente.html?id=${userId}">Mi Perfil</a> |
-          <a href="/promociones.html">Promos</a> |
-          <a href="/canjes.html?id=${userId}">Canjes</a> |
-          <a href="#" onclick="logout()">Cerrar sesión</a>
-        `;
-      } else if (rol === 'admin') {
-        links = `
-          <a href="/panel.html">Panel</a> |
-          <a href="#" onclick="logout()">Cerrar sesión</a>
-        `;
-      } else {
-        links = `
-          <a href="/login.html">Iniciar sesión</a> |
-          <a href="/registro.html">Registrarse</a>
-        `;
-      }
+        let links = '';
 
-      document.getElementById('nav-links').innerHTML = links;
-    });
+        if (rol === 'cliente') {
+          links = `
+            <a href="/cliente.html?id=${userId}">Mi Perfil</a> |
+            <a href="/promociones.html">Promos</a> |
+            <a href="/canjes.html?id=${userId}">Canjes</a> |
+            <a href="#" onclick="logout()">Cerrar sesión</a>
+          `;
+        } else if (rol === 'admin') {
+          links = `
+            <a href="/panel.html">Panel</a> |
+            <a href="/admin.html">Escanear</a> |
+            <a href="#" onclick="logout()">Cerrar sesión</a>
+          `;
+        } else {
+          links = `
+            <a href="/login.html">Iniciar sesión</a> |
+            <a href="/registro.html">Registrarse</a>
+          `;
+        }
 
-  function logout() {
-    localStorage.clear();
-    window.location.href = '/login.html';
-  }
-</script>
+        document.getElementById('nav-links').innerHTML = links;
+      });
 
-  <h2>Escanear Cliente 📷</h2>
-  <button onclick="logout()">Cerrar sesión</button>
+    function logout() {
+      localStorage.clear();
+      window.location.href = '/login.html';
+    }
+  </script>
+
+  <nav>
+    🍔 Tengo Hambre
+    <span id="nav-links"></span>
+  </nav>
+
+  <h2>📷 Escanear Cliente</h2>
   <div id="reader"></div>
+
   <div id="info"></div>
 
   <script>
-    const token = localStorage.getItem('token'),
-          rol = localStorage.getItem('rol');
-    if (!token||rol!=='admin') {
+    const token = localStorage.getItem('token');
+    const rol = localStorage.getItem('rol');
+
+    if (!token || rol !== 'admin') {
       alert('Acceso denegado');
       window.location.href = '/login.html';
     }
-    function logout(){ localStorage.clear(); window.location.href='/login.html'; }
 
-    let cliente;
+    let cliente = null;
+
     async function fetchCliente(id) {
-      const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${id}`, {
-        headers:{ 'Authorization':`Bearer ${token}` }
-      });
-      cliente = await res.json();
-      document.getElementById('info').innerHTML = `
-        <h3>${cliente.nombre}</h3>
-        <p>Coins: ${cliente.hambreCoins}</p>
-        <input type="number" id="monto" placeholder="Cantidad">
-        <button onclick="cargar()">Cargar</button>
-      `;
-    }
-    async function cargar() {
-      const m = parseInt(document.getElementById('monto').value);
-      if (!m||m<=0) return alert('Monto inválido');
-      await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${cliente.id}/cargar`, {
-        method:'POST',
-        headers:{
-          'Content-Type':'application/json',
-          'Authorization':`Bearer ${token}`
-        },
-        body: JSON.stringify({ monto: m })
-      });
-      alert('Cargado');
-      fetchCliente(cliente.id);
+      try {
+        const res = await fetch(`https://tengohambre-backend.onrender.com/api/clientes/${id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!res.ok) throw new Error('Cliente no encontrado');
+        cliente = await res.json();
+
+        document.getElementById('info').innerHTML = `
+          <div class="cliente-info">
+            <h3>${cliente.nombre}</h3>
+            <p>Saldo actual: <strong>${cliente.hambreCoins}</strong> Coins</p>
+            <input type="number" id="monto" placeholder="¿Cuántas coins otorgar?">
+            <button onclick="cargar()">Cargar Coins</button>
+          </div>
+        `;
+      } catch (err) {
+        console.error(err);
+        document.getElementById('info').innerHTML = `<p style="color:red;">⚠️ No se pudo cargar el cliente. Intentá nuevamente.</p>`;
+      }
     }
 
-    const scanner = new Html5QrcodeScanner("reader",{fps:10,qrbox:250});
+    async function cargar() {
+      const monto = parseInt(document.getElementById('monto').value);
+      if (!cliente || !cliente.id) return alert('Cliente inválido');
+      if (!monto || monto <= 0) return alert('Monto inválido');
+
+      try {
+        const res = await fetch(`https://tengohambre-backend.onrender.com/api/clientes/${cliente.id}/cargar`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ monto })
+        });
+
+        if (!res.ok) throw new Error('Error al cargar');
+
+        alert('✅ Coins cargadas correctamente');
+        fetchCliente(cliente.id);
+      } catch (err) {
+        alert('❌ Error al cargar coins');
+        console.error(err);
+      }
+    }
+
+    const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
     scanner.render(decoded => {
       scanner.clear();
       fetchCliente(decoded);
     });
   </script>
-  
+
 </body>
 </html>

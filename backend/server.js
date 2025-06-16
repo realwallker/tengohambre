@@ -4,7 +4,7 @@ const path = require('path');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
-const supabase = require('./db'); // asegúrate que sea el cliente Supabase
+const supabase = require('./db');
 const cors = require('cors');
 
 const app = express();
@@ -17,7 +17,7 @@ app.use(cors({
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../frontend')));
 
-// Middleware de autenticación
+// Middleware
 function authenticateJWT(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'No token provided' });
@@ -96,7 +96,7 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// Clientes
+// Obtener todos los clientes (admin)
 app.get('/api/clientes', authenticateJWT, authorizeRole('admin'), async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -111,9 +111,11 @@ app.get('/api/clientes', authenticateJWT, authorizeRole('admin'), async (req, re
   }
 });
 
+// Obtener perfil de cliente por ID (admin o el mismo cliente)
 app.get('/api/clientes/:id', authenticateJWT, async (req, res) => {
   const { id } = req.params;
-  if (req.user.rol === 'cliente' && req.user.id !== id) {
+
+  if (req.user.rol !== 'admin' && req.user.id !== id) {
     return res.status(403).json({ error: 'Acceso prohibido' });
   }
 
@@ -124,7 +126,10 @@ app.get('/api/clientes/:id', authenticateJWT, async (req, res) => {
       .eq('id', id)
       .single();
 
-    if (error) return res.status(404).json({ error: 'Cliente no encontrado' });
+    if (error || !data) {
+      return res.status(404).json({ error: 'Cliente no encontrado' });
+    }
+
     res.json(data);
   } catch (error) {
     console.error(error);
@@ -132,26 +137,37 @@ app.get('/api/clientes/:id', authenticateJWT, async (req, res) => {
   }
 });
 
-// Recargas
+// Recarga de hambreCoins
 app.post('/api/clientes/:id/cargar', authenticateJWT, authorizeRole('admin'), async (req, res) => {
   const { id } = req.params;
   const { monto } = req.body;
+
   if (!monto || monto <= 0) return res.status(400).json({ error: 'Monto inválido' });
 
   try {
+    const { data: cliente, error: getError } = await supabase
+      .from('clientes')
+      .select('hambreCoins')
+      .eq('id', id)
+      .single();
+
+    if (getError || !cliente) throw getError || new Error('Cliente no encontrado');
+
+    const nuevoTotal = cliente.hambreCoins + monto;
+
     const { error: updateError } = await supabase
       .from('clientes')
-      .update({ hambreCoins: supabase.rpc('increment_hambrecoins', { id_cliente: id, cantidad: monto }) })
+      .update({ hambreCoins: nuevoTotal })
       .eq('id', id);
 
     const recargaId = uuidv4();
     const fecha = new Date().toISOString();
 
-    const { error: recargaError } = await supabase
+    const { error: insertError } = await supabase
       .from('recargas')
       .insert([{ id: recargaId, clienteId: id, monto, fecha }]);
 
-    if (updateError || recargaError) throw updateError || recargaError;
+    if (updateError || insertError) throw updateError || insertError;
 
     res.json({ message: 'Coins cargadas correctamente' });
   } catch (error) {
@@ -160,9 +176,11 @@ app.post('/api/clientes/:id/cargar', authenticateJWT, authorizeRole('admin'), as
   }
 });
 
+// Obtener historial de recargas
 app.get('/api/clientes/:id/recargas', authenticateJWT, async (req, res) => {
   const { id } = req.params;
-  if (req.user.rol === 'cliente' && req.user.id !== id) {
+
+  if (req.user.rol !== 'admin' && req.user.id !== id) {
     return res.status(403).json({ error: 'Acceso prohibido' });
   }
 
@@ -181,6 +199,7 @@ app.get('/api/clientes/:id/recargas', authenticateJWT, async (req, res) => {
   }
 });
 
+// Eliminar cliente
 app.delete('/api/clientes/:id', authenticateJWT, authorizeRole('admin'), async (req, res) => {
   const { id } = req.params;
   try {
@@ -188,7 +207,7 @@ app.delete('/api/clientes/:id', authenticateJWT, authorizeRole('admin'), async (
     const { error, data } = await supabase.from('clientes').delete().eq('id', id);
 
     if (error) throw error;
-    if (data.length === 0) return res.status(404).json({ error: 'Cliente no encontrado' });
+    if (!data || data.length === 0) return res.status(404).json({ error: 'Cliente no encontrado' });
 
     res.json({ message: 'Cliente eliminado correctamente' });
   } catch (error) {
@@ -197,7 +216,7 @@ app.delete('/api/clientes/:id', authenticateJWT, authorizeRole('admin'), async (
   }
 });
 
-// Inicio del servidor
+// Iniciar servidor
 app.listen(PORT, () => {
   console.log(`🚀 Servidor escuchando en http://localhost:${PORT}`);
 });

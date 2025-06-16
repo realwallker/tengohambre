@@ -40,7 +40,6 @@
         const userId = localStorage.getItem('userId');
 
         let links = '';
-
         if (rol === 'cliente') {
           links = `
             <a href="/cliente.html?id=${userId}">Mi Perfil</a> |
@@ -95,45 +94,39 @@
     const rol = localStorage.getItem('rol');
     const userId = localStorage.getItem('userId');
 
-    if (!token || rol !== 'cliente') {
+    if (!token || rol !== 'cliente' || !userId) {
       alert('Debes iniciar sesión');
-      window.location.href = '/login.html';
+      logout();
     }
 
     document.getElementById('linkCanjes').href = `/canjes.html?id=${userId}`;
 
-    const params = new URLSearchParams(window.location.search);
-    const id = params.get('id');
-
-    if (!id) {
-      alert('ID no válido');
-      window.location.href = '/login.html';
-    }
-
-    fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${id}`, {
+    fetch(`https://tengohambre-backend.onrender.com/api/clientes/${userId}`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
     })
-      .then(res => {
-        if (!res.ok) throw new Error('Error en la carga del perfil');
-        return res.json();
-      })
-      .then(cliente => {
-        document.getElementById('saludo').textContent = `Hola ${cliente.nombre} 👋`;
-        document.getElementById('coins').textContent = cliente.hambreCoins;
+    .then(res => {
+      if (!res.ok) throw new Error('Error en la carga del perfil');
+      return res.json();
+    })
+    .then(cliente => {
+      if (!cliente || !cliente.nombre || !cliente.id) throw new Error('Cliente inválido');
 
-        new QRCode(document.getElementById('qrcode'), {
-          text: cliente.id,
-          width: 160,
-          height: 160
-        });
-      })
-      .catch(err => {
-        console.error('Error al cargar el perfil:', err);
-        alert('No se pudo cargar tu perfil. Iniciá sesión nuevamente.');
-        logout();
+      document.getElementById('saludo').textContent = `Hola ${cliente.nombre} 👋`;
+      document.getElementById('coins').textContent = cliente.hambreCoins;
+
+      new QRCode(document.getElementById('qrcode'), {
+        text: cliente.id,
+        width: 160,
+        height: 160
       });
+    })
+    .catch(err => {
+      console.error('Error al cargar el perfil:', err);
+      alert('No se pudo cargar tu perfil. Iniciá sesión nuevamente.');
+      logout();
+    });
   </script>
 
 </body>

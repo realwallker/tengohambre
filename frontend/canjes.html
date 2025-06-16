@@ -17,105 +17,120 @@
       border-radius: 12px;
       font-size: 16px;
     }
+    nav {
+      text-align: right;
+      padding: 1rem;
+    }
+    nav a {
+      margin-left: 10px;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
   <div id="navbar"></div>
-<script>
-  fetch('/navbar.html')
-    .then(res => res.text())
-    .then(html => {
-      document.getElementById('navbar').innerHTML = html;
 
-      const rol = localStorage.getItem('rol');
-      const userId = localStorage.getItem('userId');
+  <script>
+    fetch('/navbar.html')
+      .then(res => res.text())
+      .then(html => {
+        document.getElementById('navbar').innerHTML = html;
 
-      let links = '';
+        const rol = localStorage.getItem('rol');
+        const userId = localStorage.getItem('userId');
 
-      if (rol === 'cliente') {
-        links = `
-          <a href="/cliente.html?id=${userId}">Mi Perfil</a> |
-          <a href="/promociones.html">Promos</a> |
-          <a href="/canjes.html?id=${userId}">Canjes</a> |
-          <a href="#" onclick="logout()">Cerrar sesión</a>
-        `;
-      } else if (rol === 'admin') {
-        links = `
-          <a href="/panel.html">Panel</a> |
-          <a href="#" onclick="logout()">Cerrar sesión</a>
-        `;
-      } else {
-        links = `
-          <a href="/login.html">Iniciar sesión</a> |
-          <a href="/registro.html">Registrarse</a>
-        `;
-      }
+        let links = '';
 
-      document.getElementById('nav-links').innerHTML = links;
-    });
+        if (rol === 'cliente') {
+          links = `
+            <a href="/cliente.html?id=${userId}">Mi Perfil</a> |
+            <a href="/promociones.html">Promos</a> |
+            <a href="/canjes.html?id=${userId}">Canjes</a> |
+            <a href="#" onclick="logout()">Cerrar sesión</a>
+          `;
+        } else if (rol === 'admin') {
+          links = `
+            <a href="/panel.html">Panel</a> |
+            <a href="#" onclick="logout()">Cerrar sesión</a>
+          `;
+        } else {
+          links = `
+            <a href="/login.html">Iniciar sesión</a> |
+            <a href="/registro.html">Registrarse</a>
+          `;
+        }
 
-  function logout() {
-    localStorage.clear();
-    window.location.href = '/login.html';
-  }
-</script>
+        document.getElementById('nav-links').innerHTML = links;
+      });
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = '/login.html';
+    }
+  </script>
 
   <nav>
     🍔 Tengo Hambre
+    <span id="nav-links"></span>
   </nav>
 
   <div class="container">
     <h2>📋 Historial de Canjes</h2>
     <p id="nombreCliente"></p>
-
     <div class="historial" id="historial"></div>
 
-    <button onclick="logout()">Cerrar sesión</button>
+    <div style="text-align: center; margin-top: 2rem;">
+      <button onclick="logout()">Cerrar sesión</button>
+    </div>
   </div>
 
   <script>
     const token = localStorage.getItem('token');
     const rol = localStorage.getItem('rol');
     const userId = localStorage.getItem('userId');
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
 
-    if (!token || rol !== 'cliente') {
+    if (!token || rol !== 'cliente' || !id || id !== userId) {
       alert('Debes iniciar sesión como cliente');
       window.location.href = '/login.html';
     }
 
-    function logout() {
-      localStorage.clear();
-      window.location.href = '/login.html';
-    }
-
-    const params = new URLSearchParams(window.location.search);
-    const id = params.get('id');
-
     async function cargarHistorial() {
-      const res = await fetch(`https://tengohambre-backend.onrender.com/api/clientes/${id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const cliente = await res.json();
-      document.getElementById('nombreCliente').textContent = `Hola ${cliente.nombre}, estos son tus movimientos`;
+      try {
+        const clienteRes = await fetch(`https://tengohambre-backend.onrender.com/api/clientes/${id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
 
-      const recargasRes = await fetch(`https://tengohambre-backend.onrender.com/api/recargas/${id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+        if (!clienteRes.ok) throw new Error('Error al obtener cliente');
 
-      const recargas = await recargasRes.json();
-      const historialDiv = document.getElementById('historial');
+        const cliente = await clienteRes.json();
+        document.getElementById('nombreCliente').textContent = `Hola ${cliente.nombre}, estos son tus movimientos`;
 
-      if (recargas.length === 0) {
-        historialDiv.innerHTML = '<p>Aún no tenés movimientos.</p>';
-        return;
+        const recargasRes = await fetch(`https://tengohambre-backend.onrender.com/api/recargas/${id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!recargasRes.ok) throw new Error('Error al obtener recargas');
+
+        const recargas = await recargasRes.json();
+        const historialDiv = document.getElementById('historial');
+
+        if (recargas.length === 0) {
+          historialDiv.innerHTML = '<p>Aún no tenés movimientos.</p>';
+          return;
+        }
+
+        recargas.forEach(r => {
+          const div = document.createElement('div');
+          div.className = 'item';
+          div.innerHTML = `<strong>${r.monto} coins</strong> - ${new Date(r.fecha).toLocaleString()}`;
+          historialDiv.appendChild(div);
+        });
+      } catch (err) {
+        console.error(err);
+        document.getElementById('historial').innerHTML = '<p style="color:red;">⚠️ Error al cargar historial.</p>';
       }
-
-      recargas.forEach(r => {
-        const div = document.createElement('div');
-        div.className = 'item';
-        div.innerHTML = `<strong>${r.monto} coins</strong> - ${new Date(r.fecha).toLocaleString()}`;
-        historialDiv.appendChild(div);
-      });
     }
 
     cargarHistorial();
