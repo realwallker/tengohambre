@@ -4,7 +4,7 @@ const path = require('path');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
-const db = require('./db');
+const supabase = require('./db'); // asegúrate que sea el cliente Supabase
 const cors = require('cors');
 
 const app = express();
@@ -51,11 +51,17 @@ app.post('/api/registro', async (req, res) => {
     const hash = await bcrypt.hash(password, 10);
     const id = uuidv4();
 
-    await db.query(
-      `INSERT INTO clientes (id, nombre, telefono, email, password, rol, hambreCoins)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [id, nombre, telefono, email, hash, 'cliente', 0]
-    );
+    const { error } = await supabase.from('clientes').insert([{
+      id,
+      nombre,
+      telefono,
+      email,
+      password: hash,
+      rol: 'cliente',
+      hambreCoins: 0
+    }]);
+
+    if (error) throw error;
 
     res.json({ message: 'Registrado correctamente', id });
   } catch (error) {
@@ -69,8 +75,14 @@ app.post('/api/login', async (req, res) => {
   if (!telefono || !password) return res.status(400).json({ error: 'Faltan datos' });
 
   try {
-    const result = await db.query('SELECT * FROM clientes WHERE telefono = $1', [telefono]);
-    const user = result.rows[0];
+    const { data: users, error } = await supabase
+      .from('clientes')
+      .select('*')
+      .eq('telefono', telefono)
+      .limit(1);
+
+    if (error) throw error;
+    const user = users[0];
     if (!user) return res.status(401).json({ error: 'Credenciales inválidas' });
 
     const match = await bcrypt.compare(password, user.password);
@@ -87,8 +99,12 @@ app.post('/api/login', async (req, res) => {
 // Clientes
 app.get('/api/clientes', authenticateJWT, authorizeRole('admin'), async (req, res) => {
   try {
-    const result = await db.query('SELECT id, nombre, telefono, email, rol, hambreCoins FROM clientes');
-    res.json(result.rows);
+    const { data, error } = await supabase
+      .from('clientes')
+      .select('id, nombre, telefono, email, rol, hambreCoins');
+
+    if (error) throw error;
+    res.json(data);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Error al obtener clientes' });
@@ -102,12 +118,14 @@ app.get('/api/clientes/:id', authenticateJWT, async (req, res) => {
   }
 
   try {
-    const result = await db.query(
-      'SELECT id, nombre, telefono, email, hambreCoins FROM clientes WHERE id = $1',
-      [id]
-    );
-    if (result.rows.length === 0) return res.status(404).json({ error: 'Cliente no encontrado' });
-    res.json(result.rows[0]);
+    const { data, error } = await supabase
+      .from('clientes')
+      .select('id, nombre, telefono, email, hambreCoins')
+      .eq('id', id)
+      .single();
+
+    if (error) return res.status(404).json({ error: 'Cliente no encontrado' });
+    res.json(data);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Error al buscar cliente' });
@@ -121,18 +139,19 @@ app.post('/api/clientes/:id/cargar', authenticateJWT, authorizeRole('admin'), as
   if (!monto || monto <= 0) return res.status(400).json({ error: 'Monto inválido' });
 
   try {
-    await db.query(
-      'UPDATE clientes SET hambreCoins = hambreCoins + $1 WHERE id = $2',
-      [monto, id]
-    );
+    const { error: updateError } = await supabase
+      .from('clientes')
+      .update({ hambreCoins: supabase.rpc('increment_hambrecoins', { id_cliente: id, cantidad: monto }) })
+      .eq('id', id);
 
     const recargaId = uuidv4();
     const fecha = new Date().toISOString();
 
-    await db.query(
-      'INSERT INTO recargas (id, clienteId, monto, fecha) VALUES ($1, $2, $3, $4)',
-      [recargaId, id, monto, fecha]
-    );
+    const { error: recargaError } = await supabase
+      .from('recargas')
+      .insert([{ id: recargaId, clienteId: id, monto, fecha }]);
+
+    if (updateError || recargaError) throw updateError || recargaError;
 
     res.json({ message: 'Coins cargadas correctamente' });
   } catch (error) {
@@ -148,11 +167,14 @@ app.get('/api/clientes/:id/recargas', authenticateJWT, async (req, res) => {
   }
 
   try {
-    const result = await db.query(
-      'SELECT fecha, monto FROM recargas WHERE clienteId = $1 ORDER BY fecha DESC',
-      [id]
-    );
-    res.json(result.rows);
+    const { data, error } = await supabase
+      .from('recargas')
+      .select('fecha, monto')
+      .eq('clienteId', id)
+      .order('fecha', { ascending: false });
+
+    if (error) throw error;
+    res.json(data);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Error al obtener recargas' });
@@ -162,9 +184,12 @@ app.get('/api/clientes/:id/recargas', authenticateJWT, async (req, res) => {
 app.delete('/api/clientes/:id', authenticateJWT, authorizeRole('admin'), async (req, res) => {
   const { id } = req.params;
   try {
-    await db.query('DELETE FROM recargas WHERE clienteId = $1', [id]);
-    const result = await db.query('DELETE FROM clientes WHERE id = $1', [id]);
-    if (result.rowCount === 0) return res.status(404).json({ error: 'Cliente no encontrado' });
+    await supabase.from('recargas').delete().eq('clienteId', id);
+    const { error, data } = await supabase.from('clientes').delete().eq('id', id);
+
+    if (error) throw error;
+    if (data.length === 0) return res.status(404).json({ error: 'Cliente no encontrado' });
+
     res.json({ message: 'Cliente eliminado correctamente' });
   } catch (error) {
     console.error(error);
