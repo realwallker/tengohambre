@@ -190,16 +190,17 @@
     const data = await res.json();
 
     if (res.ok && data.success) {
-      alert('✅ Coins cargadas exitosamente');
-      await fetchCliente(cliente.id); // refrescar perfil
+      alert('✅ ' + data.message);
+      await fetchCliente(cliente.id); // refrescar info
     } else {
-      throw new Error(data.error || data.message || 'Error desconocido al cargar monedas');
+      alert('⚠️ ' + (data.error || data.message || 'Ocurrió un error'));
     }
   } catch (error) {
     console.error('Error al cargar monedas:', error);
-    alert(`❌ ${error.message}`);
+    alert('❌ Error de red o servidor');
   }
 }
+
 
 
     const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
