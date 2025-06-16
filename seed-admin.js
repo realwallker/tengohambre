@@ -5,7 +5,7 @@ const { v4: uuidv4 } = require('uuid');
 // Puedes cambiar estos valores libremente
 const adminData = {
   telefono: 'admin001',
-  password: 'claveadmin2024',
+  password: '2025admin001',
   email: 'admin@tengo.com',
   nombre: 'Admin'
 };
