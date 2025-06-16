@@ -167,39 +167,52 @@
     }
 
     async function cargar() {
-      if (!cliente || !cliente.id) {
-        alert('Ningún cliente seleccionado');
-        return;
-      }
+  if (!cliente || !cliente.id) {
+    alert('Ningún cliente seleccionado');
+    return;
+  }
 
-      const monto = parseInt(document.getElementById('monto').value);
-      if (!monto || monto <= 0) {
-        return alert('Monto inválido');
-      }
+  const monto = parseInt(document.getElementById('monto').value);
+  if (!monto || monto <= 0) {
+    return alert('Monto inválido');
+  }
 
-      try {
-        info.innerHTML += `<div class="spinner"></div>`;
-        const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${cliente.id}/cargar`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ monto })
-        });
+  try {
+    const loader = document.createElement('div');
+    loader.className = 'spinner';
+    info.appendChild(loader);
 
-        const data = await res.json();
+    const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${cliente.id}/cargar`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ monto })
+    });
 
-        if (!res.ok) throw new Error(data.error || 'Error desconocido');
-
-        alert('✅ Coins cargadas exitosamente');
-        await fetchCliente(cliente.id); // actualiza la info
-      } catch (error) {
-        console.error('Error al cargar monedas:', error);
-        alert('❌ Error al cargar monedas');
-        info.innerHTML = '';
-      }
+    // Esto intentará parsear la respuesta como JSON incluso si no es 2xx
+    let data;
+    try {
+      data = await res.json();
+    } catch (e) {
+      throw new Error('Respuesta inválida del servidor');
     }
+
+    if (res.ok) {
+      alert('✅ Coins cargadas exitosamente');
+      await fetchCliente(cliente.id); // refrescar perfil
+    } else {
+      throw new Error(data.error || 'Error desconocido al cargar monedas');
+    }
+  } catch (error) {
+    console.error('Error al cargar monedas:', error);
+    alert(`❌ ${error.message}`);
+  } finally {
+    const existing = document.querySelector('.spinner');
+    if (existing) existing.remove();
+  }
+}
 
     const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
     scanner.render(decoded => {
