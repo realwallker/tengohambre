@@ -189,11 +189,15 @@
 
     const data = await res.json();
 
-    if (res.ok && data.success) {
+    // Imprimir para depurar
+    console.log('Respuesta:', res);
+    console.log('Datos:', data);
+
+    if (res.ok && data?.success) {
       alert('✅ ' + data.message);
-      await fetchCliente(cliente.id); // refrescar info
+      await fetchCliente(cliente.id); // refrescar datos
     } else {
-      alert('⚠️ ' + (data.error || data.message || 'Ocurrió un error'));
+      alert('⚠️ ' + (data?.error || 'No se pudo cargar las coins'));
     }
   } catch (error) {
     console.error('Error al cargar monedas:', error);
