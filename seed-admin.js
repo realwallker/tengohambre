@@ -1,5 +1,5 @@
 require('dotenv').config();
-const db = require('./db');
+const db = require('./backend/db');
 const bcrypt = require('bcrypt');
 const { v4: uuidv4 } = require('uuid');
 
