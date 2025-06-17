@@ -4,104 +4,30 @@
   <meta charset="UTF-8">
   <title>Promociones - Tengo Hambre</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
-  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
   <style>
-    body {
-      font-family: 'Poppins', sans-serif;
-      background: #fef9f4;
-      padding: 1rem;
-      text-align: center;
-    }
-
-    nav {
-      margin-bottom: 1rem;
-    }
-
-    .promo {
-      background: #fff1dc;
-      padding: 1rem;
-      margin: 1rem auto;
-      border-radius: 12px;
-      width: 90%;
-      max-width: 400px;
-      text-align: left;
-    }
-
-    .promo button {
-      margin-top: 0.5rem;
-      padding: 6px 12px;
-      font-size: 14px;
-    }
-
-    .cliente-info {
-      background: #d4edda;
-      padding: 1.5rem;
-      border-radius: 12px;
-      margin: 2rem auto;
-      width: 90%;
-      max-width: 400px;
-    }
-
-    #qr canvas {
-      margin-top: 1rem;
-    }
-
-    .saldo {
-      font-weight: bold;
-      color: #27ae60;
-    }
+    body { font-family: 'Poppins', sans-serif; background: #fef9f4; padding: 1rem; text-align: center; }
+    nav { margin-bottom: 1rem; }
+    .promo { background: #fff1dc; padding: 1rem; margin: 1rem auto; border-radius: 12px; width: 90%; max-width: 400px; text-align: left; }
+    .promo button { margin-top: 0.5rem; padding: 6px 12px; font-size: 14px; }
+    .cliente-info { background: #d4edda; padding: 1.5rem; border-radius: 12px; margin: 2rem auto; width: 90%; max-width: 400px; }
+    #qr canvas { margin-top: 1rem; }
+    .saldo { font-weight: bold; color: #27ae60; }
   </style>
 </head>
 <body>
 
   <div id="navbar"></div>
-  <script>
-    fetch('/navbar.html')
-      .then(res => res.text())
-      .then(html => {
-        document.getElementById('navbar').innerHTML = html;
-
-        const rol = localStorage.getItem('rol');
-        const userId = localStorage.getItem('userId');
-        let links = '';
-
-        if (rol === 'cliente') {
-          links = `
-            <a href="/cliente.html?id=${userId}">Mi Perfil</a> |
-            <a href="/promociones.html">Promos</a> |
-            <a href="/canjes.html?id=${userId}">Canjes</a> |
-            <a href="#" onclick="logout()">Cerrar sesión</a>`;
-        } else if (rol === 'admin') {
-          links = `<a href="/panel.html">Panel</a> | <a href="#" onclick="logout()">Cerrar sesión</a>`;
-        } else {
-          links = `<a href="/login.html">Iniciar sesión</a> | <a href="/registro.html">Registrarse</a>`;
-        }
-
-        document.getElementById('nav-links').innerHTML = links;
-      });
-
-    function logout() {
-      localStorage.clear();
-      window.location.href = '/login.html';
-    }
-  </script>
-
-  <nav>
-    🍔 Tengo Hambre
-    <span id="nav-links"></span>
-  </nav>
+  <nav>🍔 Tengo Hambre <span id="nav-links"></span></nav>
 
   <div class="container">
     <h2>🎁 Promociones disponibles</h2>
     <p>Canjeá tus coins por deliciosas recompensas 🍟</p>
     <p class="saldo" id="coinDisplay"></p>
     <div id="promos"></div>
-
-    <p style="margin-top:2rem;">
-      <a href="#" id="perfilLink">← Volver a mi perfil</a>
-    </p>
+    <p style="margin-top:2rem;"><a href="#" id="perfilLink">← Volver a mi perfil</a></p>
     <button onclick="logout()">Cerrar sesión</button>
   </div>
 
@@ -116,95 +42,88 @@
     }
 
     document.getElementById('perfilLink').href = `/cliente.html?id=${userId}`;
-    let coins = 0;
 
     async function cargarPromos() {
       try {
-        const resUser = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${userId}`, {
+        const resUser = await fetch(`/api/clientes/${userId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-
         if (!resUser.ok) throw new Error('Error al cargar usuario');
-
         const cliente = await resUser.json();
-        coins = cliente.hambreCoins;
-        document.getElementById('coinDisplay').textContent = `Tu saldo: ${coins} Coins`;
+        document.getElementById('coinDisplay').textContent = `Tu saldo: ${cliente.hambreCoins} Coins`;
 
-        const resPromos = await fetch(`https://tengo-hambre-backend.onrender.com/api/promociones`,);
+        const resPromos = await fetch('/api/promociones', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
         if (!resPromos.ok) throw new Error('Error al cargar promociones');
         const promociones = await resPromos.json();
 
-        const contenedor = document.getElementById('promos');
-        contenedor.innerHTML = '';
-
-        promociones.forEach(promo => {
+        const cont = document.getElementById('promos');
+        cont.innerHTML = '';
+        promociones.forEach(p => {
+          const btnTxt = cliente.hambreCoins < p.valorCoins ? 'Saldo insuficiente' : 'Canjear';
+          const disabled = cliente.hambreCoins < p.valorCoins ? 'disabled' : '';
           const div = document.createElement('div');
           div.className = 'promo';
           div.innerHTML = `
-            <h3>${promo.titulo}</h3>
-            <p>${promo.descripcion || ''}</p>
-            <p><strong>Costo:</strong> ${promo.valorCoins} Coins</p>
-            <button onclick="canjear('${promo.id}', '${promo.titulo}', ${promo.valorCoins})" ${coins < promo.valorCoins ? 'disabled' : ''}>
-              ${coins < promo.valorCoins ? 'Saldo insuficiente' : 'Canjear'}
-            </button>
+            <h3>${p.titulo}</h3>
+            <p>${p.descripcion || ''}</p>
+            <p><strong>Costo:</strong> ${p.valorCoins} Coins</p>
+            <button onclick="canjear('${p.id}', '${p.titulo}', ${p.valorCoins})" ${disabled}>${btnTxt}</button>
           `;
-          contenedor.appendChild(div);
+          cont.appendChild(div);
         });
+
       } catch (err) {
         console.error(err);
         alert('No se pudieron cargar las promociones');
       }
     }
 
-    async function canjear(promoId, promoNombre, costo) {
-      if (coins < costo) return alert('No tenés suficientes coins');
-
-      const confirmacion = confirm(`¿Confirmás canjear ${costo} Coins por "${promoNombre}"?`);
+    async function canjear(idPromo, titulo, costo) {
+      const confirmacion = confirm(`¿Confirmás canjear ${costo} Coins por "${titulo}"?`);
       if (!confirmacion) return;
 
       try {
-        const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/canjes`, {
+        const res = await fetch('/api/canjes', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            clienteId: userId,
-            promocionId: promoId
-          })
+          body: JSON.stringify({ clienteId: userId, promocionId: idPromo })
         });
-
         if (!res.ok) throw new Error('Error al registrar el canje');
         const data = await res.json();
 
-        mostrarComprobante(promoNombre, data.codigo);
+        mostrarComprobante(titulo, data.codigo);
+
       } catch (err) {
         console.error(err);
         alert('Error al realizar el canje');
       }
     }
 
-    function mostrarComprobante(promoNombre, codigo) {
-      const contenedor = document.getElementById('promos');
-      contenedor.innerHTML = `
+    function mostrarComprobante(titulo, codigo) {
+      const cont = document.getElementById('promos');
+      cont.innerHTML = `
         <div class="cliente-info">
           <h3>🎉 ¡Canje exitoso!</h3>
-          <p>Promoción: <strong>${promoNombre}</strong></p>
+          <p>Promoción: <strong>${titulo}</strong></p>
           <p>Código único:</p>
-          <div style="font-size: 1.5rem; margin: 1rem 0; background: #eee; padding: 10px; border-radius: 8px;">
+          <div style="font-size:1.5rem;margin:1rem 0;background:#eee;padding:10px;border-radius:8px;">
             ${codigo}
           </div>
           <div id="qr"></div>
-          <p>Mostralo al retirar tu pedido 📲</p>
-          <br>
+          <p>Mostralo al retirar tu pedido 📲</p><br>
           <button onclick="location.reload()">← Volver a promociones</button>
-        </div>
-      `;
+        </div>`;
+      QRCode.toCanvas(document.getElementById("qr"), codigo, { width: 200 }, e=>{ if(e) console.error(e); });
+    }
 
-      QRCode.toCanvas(document.getElementById("qr"), codigo, { width: 200 }, function (error) {
-        if (error) console.error(error);
-      });
+    function logout() {
+      localStorage.clear();
+      window.location.href = '/login.html';
     }
 
     cargarPromos();
