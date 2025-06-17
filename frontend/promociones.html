@@ -130,8 +130,7 @@
         coins = cliente.hambreCoins;
         document.getElementById('coinDisplay').textContent = `Tu saldo: ${coins} Coins`;
 
-        const resPromos = await fetch(`https://tengo-hambre-backend.onrender.com/api/promociones`,
-       { headers: { 'Authorization': `Bearer ${token}` } });
+        const resPromos = await fetch(`https://tengo-hambre-backend.onrender.com/api/promociones`,);
         if (!resPromos.ok) throw new Error('Error al cargar promociones');
         const promociones = await resPromos.json();
 
