@@ -333,6 +333,24 @@ app.get('/api/canjes/cliente/:clienteId', authenticateJWT, authorizeRole('client
   }
 });
 
+// Obtener promociones activas (clientes)
+app.get('/api/promociones', authenticateJWT, authorizeRole('cliente','admin'), async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('promociones')
+      .select('id, titulo, descripcion, valorCoins, imagenUrl')
+      .eq('activo', true)
+      .order('titulo', { ascending: true });
+
+    if (error) throw error;
+    res.json(data);
+  } catch (err) {
+    console.error('Error en GET /promociones:', err);
+    res.status(500).json({ error: 'No se pudieron obtener promociones' });
+  }
+});
+
+
 
 // Confirmar entrega del canje
 app.post('/api/canjes/:codigo/confirmar', authenticateJWT, authorizeRole('admin'), async (req, res) => {
