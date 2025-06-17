@@ -138,26 +138,48 @@
       window.location.href = '/login.html';
     }
 
+    let scanner = new Html5Qrcode("reader");
     let cliente = null;
-    const scanner = new Html5Qrcode("reader");
 
     async function iniciarScanner() {
-      reader.style.display = "block";
-      info.innerHTML = "";
+  reader.style.display = "block";
+  info.innerHTML = "";
 
-      await scanner.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: 250 },
-        async (decodedText) => {
-          await scanner.stop();
-          reader.style.display = "none";
-          fetchCliente(decodedText);
-        },
-        (errorMessage) => {
-          // Silenciar errores de lectura
-        }
-      );
-    }
+  // ⚠️ Destruir escáner anterior si ya existe
+  try {
+    await scanner.stop();
+  } catch (e) {
+    // Ya estaba detenido
+  }
+
+  try {
+    await scanner.clear(); // Elimina contenido interno
+  } catch (e) {
+    // Ya estaba limpio
+  }
+
+  // 🆕 Reinstanciar scanner limpio
+  scanner = new Html5Qrcode("reader");
+
+  try {
+    await scanner.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: 250 },
+      async (decodedText) => {
+        await scanner.stop();
+        reader.style.display = "none";
+        fetchCliente(decodedText);
+      },
+      (errorMessage) => {
+        // Silenciar errores menores
+      }
+    );
+  } catch (err) {
+    console.error("❌ No se pudo iniciar escáner:", err);
+    info.innerHTML = `<p style="color:red;">❌ No se pudo iniciar el escáner. Recarga la página.</p>`;
+  }
+}
+
 
     async function fetchCliente(id) {
       try {

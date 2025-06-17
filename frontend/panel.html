@@ -133,139 +133,156 @@
   <button onclick="logout()" style="margin-top:2rem;">Cerrar sesión</button>
 
   <script>
-    const token = localStorage.getItem('token');
-    const rol = localStorage.getItem('rol');
-    const info = document.getElementById('info');
+  const token = localStorage.getItem('token');
+  const rol = localStorage.getItem('rol');
+  const info = document.getElementById('info');
+  const reader = document.getElementById('reader');
 
-    if (!token || rol !== 'admin') {
-      alert('Acceso denegado');
-      window.location.href = '/login.html';
-    }
-
-    let cliente = null;
-
-    async function fetchCliente(id) {
-      try {
-        info.innerHTML = '<div class="spinner"></div>';
-        const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${id}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        if (!res.ok) throw new Error('Cliente no encontrado');
-        const data = await res.json();
-        cliente = data;
-
-        info.innerHTML = `
-          <div class="cliente-info">
-            <h3>${cliente.nombre}</h3>
-            <p>Saldo actual: <strong>${cliente.hambreCoins}</strong> Coins</p>
-            <input type="number" id="monto" placeholder="¿Cuántas coins otorgar?">
-            <br>
-            <button onclick="cargar()">Cargar Coins</button>
-          </div>
-        `;
-      } catch (err) {
-        info.innerHTML = `<p style="color:red;">❌ No se pudo cargar el cliente. Intentá nuevamente.</p>`;
-        console.error(err);
-      }
-    }
-
-    async function cargar() {
-  if (!cliente || !cliente.id) {
-    alert('Ningún cliente seleccionado');
-    return;
+  if (!token || rol !== 'admin') {
+    alert('Acceso denegado');
+    window.location.href = '/login.html';
   }
 
-  const monto = parseInt(document.getElementById('monto').value);
-  if (!monto || monto <= 0) {
-    return alert('Monto inválido');
-  }
+  let cliente = null;
+  let scanner = new Html5Qrcode("reader");
 
-  info.innerHTML += '<div class="spinner"></div>';
+  async function iniciarScanner() {
+    reader.style.display = "block";
+    info.innerHTML = "";
 
-  try {
-    const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${cliente.id}/cargar`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ monto })
-    });
+    // Limpiar escáner anterior si existe
+    try {
+      await scanner.stop();
+    } catch (e) {}
 
-    const data = await res.json();
+    try {
+      await scanner.clear();
+    } catch (e) {}
 
-    if (res.ok && data.success) {
-      alert('✅ Coins cargadas correctamente');
+    scanner = new Html5Qrcode("reader");
 
-      // Limpiar UI
-      cliente = null;
-      info.innerHTML = '';
-      reader.style.display = 'block';
-
-      // Intentar reiniciar el escáner
-      try {
-        if (scanner.getState() === Html5QrcodeScannerState.SCANNING ||
-            scanner.getState() === Html5QrcodeScannerState.PAUSED) {
+    try {
+      await scanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 250 },
+        async decodedText => {
           await scanner.stop();
+          reader.style.display = "none";
+          fetchCliente(decodedText);
+        },
+        error => {
+          // Silenciar errores menores
         }
-        await iniciarScanner();
-      } catch (err) {
-        console.error("❌ Error al reiniciar escáner:", err);
-        info.innerHTML = `<p style="color:red;">❌ No se pudo reiniciar el escáner. Recarga la página.</p>`;
-      }
-
-    } else {
-      alert('⚠️ ' + (data.error || 'Error al cargar las coins'));
+      );
+    } catch (err) {
+      console.error("❌ No se pudo iniciar escáner:", err);
+      info.innerHTML = `<p style="color:red;">❌ No se pudo iniciar el escáner. Recarga la página.</p>`;
     }
-  } catch (error) {
-    console.error('❌ Error al cargar monedas:', error);
-    alert('❌ Error de red o servidor');
   }
-}
 
-
-
-    async function loadClientes() {
-      const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes`, {
+  async function fetchCliente(id) {
+    try {
+      info.innerHTML = '<div class="spinner"></div>';
+      const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
-      if (!res.ok) {
-        document.getElementById('clientes').innerHTML = '⚠️ Error al cargar clientes';
-        return;
-      }
+      if (!res.ok) throw new Error('Cliente no encontrado');
+      const data = await res.json();
+      cliente = data;
 
-      const lista = await res.json();
-      const html = `
-        <table>
-          <tr>
-            <th>Nombre</th>
-            <th>Teléfono</th>
-            <th>Email</th>
-            <th>HambreCoins</th>
-          </tr>
-          ${lista.map(c => `
-            <tr>
-              <td>${c.nombre}</td>
-              <td>${c.telefono}</td>
-              <td>${c.email}</td>
-              <td>${c.hambreCoins}</td>
-            </tr>
-          `).join('')}
-        </table>
+      info.innerHTML = `
+        <div class="cliente-info">
+          <h3>${cliente.nombre}</h3>
+          <p>Saldo actual: <strong>${cliente.hambreCoins}</strong> Coins</p>
+          <input type="number" id="monto" placeholder="¿Cuántas coins otorgar?">
+          <br>
+          <button onclick="cargar()">Cargar Coins</button>
+        </div>
       `;
-      document.getElementById('clientes').innerHTML = html;
+    } catch (err) {
+      info.innerHTML = `<p style="color:red;">❌ No se pudo cargar el cliente. Intentá nuevamente.</p>`;
+      console.error(err);
+      setTimeout(() => iniciarScanner(), 2000);
+    }
+  }
+
+  async function cargar() {
+    if (!cliente || !cliente.id) {
+      alert('Ningún cliente seleccionado');
+      return;
     }
 
-    // Escáner QR
-    const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
-    scanner.render(decoded => {
-      scanner.clear();
-      fetchCliente(decoded);
+    const monto = parseInt(document.getElementById('monto').value);
+    if (!monto || monto <= 0) {
+      return alert('Monto inválido');
+    }
+
+    info.innerHTML += '<div class="spinner"></div>';
+
+    try {
+      const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${cliente.id}/cargar`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ monto })
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        alert('✅ Coins cargadas correctamente');
+        cliente = null;
+        info.innerHTML = '';
+        reader.style.display = 'block';
+        await iniciarScanner();
+      } else {
+        alert('⚠️ ' + (data.error || 'Error al cargar las coins'));
+      }
+    } catch (error) {
+      console.error('❌ Error al cargar monedas:', error);
+      alert('❌ Error de red o servidor');
+    }
+  }
+
+  async function loadClientes() {
+    const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes`, {
+      headers: { 'Authorization': `Bearer ${token}` }
     });
 
-    loadClientes();
-  </script>
+    if (!res.ok) {
+      document.getElementById('clientes').innerHTML = '⚠️ Error al cargar clientes';
+      return;
+    }
+
+    const lista = await res.json();
+    const html = `
+      <table>
+        <tr>
+          <th>Nombre</th>
+          <th>Teléfono</th>
+          <th>Email</th>
+          <th>HambreCoins</th>
+        </tr>
+        ${lista.map(c => `
+          <tr>
+            <td>${c.nombre}</td>
+            <td>${c.telefono}</td>
+            <td>${c.email}</td>
+            <td>${c.hambreCoins}</td>
+          </tr>
+        `).join('')}
+      </table>
+    `;
+    document.getElementById('clientes').innerHTML = html;
+  }
+
+  // Iniciar escáner al cargar
+  iniciarScanner();
+  loadClientes();
+</script>
+
 </body>
 </html>
