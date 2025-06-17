@@ -187,42 +187,48 @@
     }
 
     async function cargar() {
-      if (!cliente || !cliente.id) {
-        alert('Ningún cliente seleccionado');
-        return;
-      }
+  if (!cliente || !cliente.id) {
+    alert('Ningún cliente seleccionado');
+    return;
+  }
 
-      const monto = parseInt(document.getElementById('monto').value);
-      if (!monto || monto <= 0) {
-        return alert('Monto inválido');
-      }
+  const monto = parseInt(document.getElementById('monto').value);
+  if (!monto || monto <= 0) {
+    return alert('Monto inválido');
+  }
 
-      info.innerHTML += '<div class="spinner"></div>';
+  info.innerHTML += '<div class="spinner"></div>';
 
-      try {
-        const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${cliente.id}/cargar`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ monto })
-        });
+  try {
+    const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${cliente.id}/cargar`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ monto })
+    });
 
-        const data = await res.json();
+    const data = await res.json();
 
-        if (res.ok && data.success) {
-          alert('✅ Coins cargadas correctamente');
-          cliente = null;
-          await iniciarScanner();
-        } else {
-          alert('⚠️ ' + (data.error || 'Error al cargar las coins'));
-        }
-      } catch (error) {
-        console.error('❌ Error al cargar monedas:', error);
-        alert('❌ Error de red o servidor');
-      }
+    if (res.ok && data.success) {
+      alert('✅ Coins cargadas correctamente');
+
+      // LIMPIAR UI y volver al escáner
+      cliente = null;
+      info.innerHTML = '';
+      reader.style.display = 'block';
+      await iniciarScanner();
+
+    } else {
+      alert('⚠️ ' + (data.error || 'Error al cargar las coins'));
     }
+  } catch (error) {
+    console.error('❌ Error al cargar monedas:', error);
+    alert('❌ Error de red o servidor');
+  }
+}
+
 
     iniciarScanner();
   </script>

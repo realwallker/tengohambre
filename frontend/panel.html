@@ -171,41 +171,48 @@
     }
 
     async function cargar() {
-      if (!cliente || !cliente.id) {
-        alert('Ningún cliente seleccionado');
-        return;
-      }
+  if (!cliente || !cliente.id) {
+    alert('Ningún cliente seleccionado');
+    return;
+  }
 
-      const monto = parseInt(document.getElementById('monto').value);
-      if (!monto || monto <= 0) {
-        return alert('Monto inválido');
-      }
+  const monto = parseInt(document.getElementById('monto').value);
+  if (!monto || monto <= 0) {
+    return alert('Monto inválido');
+  }
 
-      try {
-        const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${cliente.id}/cargar`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ monto })
-        });
+  info.innerHTML += '<div class="spinner"></div>';
 
-        const data = await res.json();
+  try {
+    const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${cliente.id}/cargar`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ monto })
+    });
 
-        console.log('[DEBUG] Respuesta cargar:', data);
+    const data = await res.json();
 
-        if (res.ok && !data.error) {
-          alert('✅ ' + (data.message || 'Coins cargadas correctamente'));
-          await fetchCliente(cliente.id); // refrescar datos
-        } else {
-          alert('⚠️ ' + (data?.error || 'No se pudo cargar las coins'));
-        }
-      } catch (error) {
-        console.error('Error al cargar monedas:', error);
-        alert('❌ Error de red o servidor');
-      }
+    if (res.ok && data.success) {
+      alert('✅ Coins cargadas correctamente');
+
+      // LIMPIAR UI y volver al escáner
+      cliente = null;
+      info.innerHTML = '';
+      reader.style.display = 'block';
+      await iniciarScanner();
+
+    } else {
+      alert('⚠️ ' + (data.error || 'Error al cargar las coins'));
     }
+  } catch (error) {
+    console.error('❌ Error al cargar monedas:', error);
+    alert('❌ Error de red o servidor');
+  }
+}
+
 
     async function loadClientes() {
       const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes`, {
