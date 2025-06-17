@@ -131,6 +131,7 @@
     const token = localStorage.getItem('token');
     const rol = localStorage.getItem('rol');
     const info = document.getElementById('info');
+    const reader = document.getElementById('reader');
 
     if (!token || rol !== 'admin') {
       alert('Acceso denegado');
@@ -138,6 +139,25 @@
     }
 
     let cliente = null;
+    const scanner = new Html5Qrcode("reader");
+
+    async function iniciarScanner() {
+      reader.style.display = "block";
+      info.innerHTML = "";
+
+      await scanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 250 },
+        async (decodedText) => {
+          await scanner.stop();
+          reader.style.display = "none";
+          fetchCliente(decodedText);
+        },
+        (errorMessage) => {
+          // Silenciar errores de lectura
+        }
+      );
+    }
 
     async function fetchCliente(id) {
       try {
@@ -162,6 +182,7 @@
       } catch (err) {
         info.innerHTML = `<p style="color:red;">❌ No se pudo cargar el cliente. Intentá nuevamente.</p>`;
         console.error(err);
+        setTimeout(() => iniciarScanner(), 2000);
       }
     }
 
@@ -189,11 +210,11 @@
         });
 
         const data = await res.json();
-        console.log('Respuesta backend:', data);
 
-        if (res.ok && data.error) {
-          alert('✅ ' + data.message);
-          await fetchCliente(cliente.id);
+        if (res.ok && data.success) {
+          alert('✅ Coins cargadas correctamente');
+          cliente = null;
+          await iniciarScanner();
         } else {
           alert('⚠️ ' + (data.error || 'Error al cargar las coins'));
         }
@@ -203,15 +224,7 @@
       }
     }
 
-    const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
-    scanner.render(decoded => {
-      scanner.clear();
-      if (!decoded) {
-        info.innerHTML = `<p style="color:red;">❌ Código QR inválido.</p>`;
-        return;
-      }
-      fetchCliente(decoded);
-    });
+    iniciarScanner();
   </script>
 
 </body>
