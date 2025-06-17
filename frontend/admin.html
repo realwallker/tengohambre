@@ -214,11 +214,22 @@
     if (res.ok && data.success) {
       alert('✅ Coins cargadas correctamente');
 
-      // LIMPIAR UI y volver al escáner
+      // Limpiar UI
       cliente = null;
       info.innerHTML = '';
       reader.style.display = 'block';
-      await iniciarScanner();
+
+      // Intentar reiniciar el escáner
+      try {
+        if (scanner.getState() === Html5QrcodeScannerState.SCANNING ||
+            scanner.getState() === Html5QrcodeScannerState.PAUSED) {
+          await scanner.stop();
+        }
+        await iniciarScanner();
+      } catch (err) {
+        console.error("❌ Error al reiniciar escáner:", err);
+        info.innerHTML = `<p style="color:red;">❌ No se pudo reiniciar el escáner. Recarga la página.</p>`;
+      }
 
     } else {
       alert('⚠️ ' + (data.error || 'Error al cargar las coins'));
@@ -229,6 +240,14 @@
   }
 }
 
+
+// Detectar si el escáner ya está activo (Html5Qrcode usa esto internamente)
+const Html5QrcodeScannerState = {
+  NOT_STARTED: 0,
+  SCANNING: 1,
+  PAUSED: 2,
+  STOPPED: 3
+};
 
     iniciarScanner();
   </script>
