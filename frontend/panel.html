@@ -85,281 +85,253 @@
 
     th {
       background-color: #f7c948;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
 
-  <div id="navbar"></div>
+<div id="navbar"></div>
 
-  <script>
-    fetch('/navbar.html')
-      .then(res => res.text())
-      .then(html => {
-        document.getElementById('navbar').innerHTML = html;
-        const rol = localStorage.getItem('rol');
-        const userId = localStorage.getItem('userId');
+<script>
+  fetch('/navbar.html')
+    .then(res => res.text())
+    .then(html => {
+      document.getElementById('navbar').innerHTML = html;
+      const rol = localStorage.getItem('rol');
+      const userId = localStorage.getItem('userId');
 
-        let links = '';
-        if (rol === 'cliente') {
-          links = `<a href="/cliente.html?id=${userId}">Mi Perfil</a> |
-                   <a href="/promociones.html">Promos</a> |
-                   <a href="/canjes.html?id=${userId}">Canjes</a> |
-                   <a href="#" onclick="logout()">Cerrar sesión</a>`;
-        } else if (rol === 'admin') {
-          links = `<a href="/panel.html">Panel</a> |
-                   <a href="#" onclick="logout()">Cerrar sesión</a>`;
-        } else {
-          links = `<a href="/login.html">Iniciar sesión</a> |
-                   <a href="/registro.html">Registrarse</a>`;
-        }
+      let links = '';
+      if (rol === 'cliente') {
+        links = `<a href="/cliente.html?id=${userId}">Mi Perfil</a> |
+                 <a href="/promociones.html">Promos</a> |
+                 <a href="/canjes.html?id=${userId}">Canjes</a> |
+                 <a href="#" onclick="logout()">Cerrar sesión</a>`;
+      } else if (rol === 'admin') {
+        links = `<a href="/panel.html">Panel</a> |
+                 <a href="#" onclick="logout()">Cerrar sesión</a>`;
+      } else {
+        links = `<a href="/login.html">Iniciar sesión</a> |
+                 <a href="/registro.html">Registrarse</a>`;
+      }
 
-        document.getElementById('nav-links').innerHTML = links;
-      });
+      document.getElementById('nav-links').innerHTML = links;
+    });
 
-    function logout() {
-      localStorage.clear();
-      window.location.href = '/login.html';
-    }
-  </script>
-
-  <h2>📷 Escanear Cliente</h2>
-  <div id="reader"></div>
-  <div id="info"></div>
-
-  <h2>📦 Validar Código de Canje</h2>
-  <div id="canje-reader"></div>
-  <div id="canje-info"></div>
-
-
-  <h2>👥 Clientes Registrados</h2>
-  <div id="clientes"></div>
-
-  <button onclick="logout()" style="margin-top:2rem;">Cerrar sesión</button>
-
-  <script>
-  const token = localStorage.getItem('token');
-  const rol = localStorage.getItem('rol');
-  const info = document.getElementById('info');
-  const reader = document.getElementById('reader');
-
-  if (!token || rol !== 'admin') {
-    alert('Acceso denegado');
+  function logout() {
+    localStorage.clear();
     window.location.href = '/login.html';
   }
+</script>
 
-  let cliente = null;
-  let scanner = new Html5Qrcode("reader");
+<h2>📷 Escanear QR (Cliente o Canje)</h2>
+<div id="reader"></div>
+<div id="info"></div>
 
-  async function iniciarScanner() {
-    reader.style.display = "block";
-    info.innerHTML = "";
+<h2>👥 Clientes Registrados</h2>
+<div id="clientes"></div>
 
-    // Limpiar escáner anterior si existe
-    try {
-      await scanner.stop();
-    } catch (e) {}
+<button onclick="logout()" style="margin-top:2rem;">Cerrar sesión</button>
 
-    try {
-      await scanner.clear();
-    } catch (e) {}
+<script>
+const token = localStorage.getItem('token');
+const rol = localStorage.getItem('rol');
+const info = document.getElementById('info');
+const reader = document.getElementById('reader');
 
-    scanner = new Html5Qrcode("reader");
+if (!token || rol !== 'admin') {
+  alert('Acceso denegado');
+  window.location.href = '/login.html';
+}
 
-    try {
-      await scanner.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: 250 },
-        async decodedText => {
-          await scanner.stop();
-          reader.style.display = "none";
+let cliente = null;
+let scanner = new Html5Qrcode("reader");
+
+async function iniciarScanner() {
+  reader.style.display = "block";
+  info.innerHTML = "";
+
+  try { await scanner.stop(); } catch (e) {}
+  try { await scanner.clear(); } catch (e) {}
+
+  scanner = new Html5Qrcode("reader");
+
+  try {
+    await scanner.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: 250 },
+      async decodedText => {
+        await scanner.stop();
+        reader.style.display = "none";
+
+        if (decodedText.length === 36 && decodedText.includes("-")) {
+          info.innerHTML = '<p>📇 Cargando datos del cliente...</p><div class="spinner"></div>';
           fetchCliente(decodedText);
-        },
-        error => {
-          // Silenciar errores menores
+        } else if (/^[A-Z0-9]{6}$/.test(decodedText)) {
+          info.innerHTML = '<p>🎟️ Verificando código de canje...</p><div class="spinner"></div>';
+          validarCanje(decodedText);
+        } else {
+          info.innerHTML = `<p style="color:red;">⚠️ Código no válido</p>`;
+          setTimeout(() => iniciarScanner(), 2000);
         }
-      );
-    } catch (err) {
-      console.error("❌ No se pudo iniciar escáner:", err);
-      info.innerHTML = `<p style="color:red;">❌ No se pudo iniciar el escáner. Recarga la página.</p>`;
-    }
+      },
+      error => {}
+    );
+  } catch (err) {
+    console.error("❌ Error iniciando escáner:", err);
+    info.innerHTML = `<p style="color:red;">❌ No se pudo iniciar el escáner</p>`;
   }
+}
 
-  async function fetchCliente(id) {
-    try {
-      info.innerHTML = '<div class="spinner"></div>';
-      const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (!res.ok) throw new Error('Cliente no encontrado');
-      const data = await res.json();
-      cliente = data;
-
-      info.innerHTML = `
-        <div class="cliente-info">
-          <h3>${cliente.nombre}</h3>
-          <p>Saldo actual: <strong>${cliente.hambreCoins}</strong> Coins</p>
-          <input type="number" id="monto" placeholder="¿Cuántas coins otorgar?">
-          <br>
-          <button onclick="cargar()">Cargar Coins</button>
-        </div>
-      `;
-    } catch (err) {
-      info.innerHTML = `<p style="color:red;">❌ No se pudo cargar el cliente. Intentá nuevamente.</p>`;
-      console.error(err);
-      setTimeout(() => iniciarScanner(), 2000);
-    }
-  }
-
-  async function cargar() {
-    if (!cliente || !cliente.id) {
-      alert('Ningún cliente seleccionado');
-      return;
-    }
-
-    const monto = parseInt(document.getElementById('monto').value);
-    if (!monto || monto <= 0) {
-      return alert('Monto inválido');
-    }
-
-    info.innerHTML += '<div class="spinner"></div>';
-
-    try {
-      const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${cliente.id}/cargar`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ monto })
-      });
-
-      const data = await res.json();
-
-      if (res.ok && data.success) {
-        alert('✅ Coins cargadas correctamente');
-        cliente = null;
-        info.innerHTML = '';
-        reader.style.display = 'block';
-        await iniciarScanner();
-      } else {
-        alert('⚠️ ' + (data.error || 'Error al cargar las coins'));
-      }
-    } catch (error) {
-      console.error('❌ Error al cargar monedas:', error);
-      alert('❌ Error de red o servidor');
-    }
-  }
-
-  async function loadClientes() {
-    const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes`, {
+async function fetchCliente(id) {
+  try {
+    const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${id}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
 
-    if (!res.ok) {
-      document.getElementById('clientes').innerHTML = '⚠️ Error al cargar clientes';
+    if (!res.ok) throw new Error('Cliente no encontrado');
+    const data = await res.json();
+    cliente = data;
+
+    info.innerHTML = `
+      <div class="cliente-info">
+        <h3>${cliente.nombre}</h3>
+        <p>Saldo actual: <strong>${cliente.hambreCoins}</strong> Coins</p>
+        <input type="number" id="monto" placeholder="¿Cuántas coins otorgar?">
+        <br>
+        <button onclick="cargar()">Cargar Coins</button>
+        <button onclick="iniciarScanner()">🔄 Escanear otro código</button>
+      </div>
+    `;
+  } catch (err) {
+    info.innerHTML = `<p style="color:red;">❌ No se pudo cargar el cliente</p>`;
+    console.error(err);
+    setTimeout(() => iniciarScanner(), 2000);
+  }
+}
+
+async function cargar() {
+  if (!cliente || !cliente.id) return alert('Ningún cliente seleccionado');
+  const monto = parseInt(document.getElementById('monto').value);
+  if (!monto || monto <= 0) return alert('Monto inválido');
+
+  info.innerHTML += '<div class="spinner"></div>';
+
+  try {
+    const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${cliente.id}/cargar`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ monto })
+    });
+
+    const data = await res.json();
+    if (res.ok && data.success) {
+      alert('✅ Coins cargadas correctamente');
+      cliente = null;
+      info.innerHTML = '';
+      reader.style.display = 'block';
+      await iniciarScanner();
+    } else {
+      alert('⚠️ ' + (data.error || 'Error al cargar coins'));
+    }
+  } catch (error) {
+    console.error(error);
+    alert('❌ Error de red');
+  }
+}
+
+async function validarCanje(codigo) {
+  try {
+    const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/canjes/${codigo}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (!res.ok) throw new Error('Código no válido');
+    const data = await res.json();
+
+    if (data.usado) {
+      info.innerHTML = `
+        <div class="cliente-info">
+          <p style="color:red;">❌ Este código ya fue utilizado</p>
+          <button onclick="iniciarScanner()">🔄 Escanear otro código</button>
+        </div>
+      `;
       return;
     }
 
-    const lista = await res.json();
-    const html = `
-      <table>
-        <tr>
-          <th>Nombre</th>
-          <th>Teléfono</th>
-          <th>Email</th>
-          <th>HambreCoins</th>
-        </tr>
-        ${lista.map(c => `
-          <tr>
-            <td>${c.nombre}</td>
-            <td>${c.telefono}</td>
-            <td>${c.email}</td>
-            <td>${c.hambreCoins}</td>
-          </tr>
-        `).join('')}
-      </table>
+    info.innerHTML = `
+      <div class="cliente-info">
+        <h3>🎁 Canje válido</h3>
+        <p>Cliente: <strong>${data.clientes.nombre}</strong></p>
+        <p>Promoción: <strong>${data.promociones.titulo}</strong></p>
+        <p>Código: <strong>${data.codigo}</strong></p>
+        <button onclick="confirmarCanje('${codigo}')">Confirmar entrega</button>
+        <button onclick="iniciarScanner()">🔄 Escanear otro código</button>
+      </div>
     `;
-    document.getElementById('clientes').innerHTML = html;
+  } catch (err) {
+    info.innerHTML = `<p style="color:red;">❌ Código inválido</p>`;
+    setTimeout(() => iniciarScanner(), 2000);
+  }
+}
+
+async function confirmarCanje(codigo) {
+  try {
+    const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/canjes/${codigo}/confirmar`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al confirmar');
+
+    alert(data.message || '✅ Canje confirmado');
+    info.innerHTML = '';
+    iniciarScanner();
+  } catch (err) {
+    alert('❌ No se pudo confirmar el canje');
+    iniciarScanner();
+  }
+}
+
+async function loadClientes() {
+  const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes`, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+
+  if (!res.ok) {
+    document.getElementById('clientes').innerHTML = '⚠️ Error al cargar clientes';
+    return;
   }
 
-  // Iniciar escáner al cargar
-  iniciarScanner();
-  loadClientes();
+  const lista = await res.json();
+  const html = `
+    <table>
+      <tr>
+        <th>Nombre</th>
+        <th>Teléfono</th>
+        <th>Email</th>
+        <th>HambreCoins</th>
+      </tr>
+      ${lista.map(c => `
+        <tr>
+          <td>${c.nombre}</td>
+          <td>${c.telefono}</td>
+          <td>${c.email}</td>
+          <td>${c.hambreCoins}</td>
+        </tr>
+      `).join('')}
+    </table>
+  `;
+  document.getElementById('clientes').innerHTML = html;
+}
 
-  const canjeReader = document.getElementById('canje-reader');
-  const canjeInfo = document.getElementById('canje-info');
-  let scannerCanje = new Html5Qrcode("canje-reader");
-
-  async function iniciarCanjeScanner() {
-    canjeReader.style.display = "block";
-    canjeInfo.innerHTML = '';
-
-    try {
-      await scannerCanje.stop();
-    } catch (_) {}
-
-    try {
-      await scannerCanje.clear();
-    } catch (_) {}
-
-    scannerCanje = new Html5Qrcode("canje-reader");
-
-    try {
-      await scannerCanje.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: 200 },
-        async decodedText => {
-          await scannerCanje.stop();
-          validarCodigoCanje(decodedText.trim());
-        },
-        error => {}
-      );
-    } catch (err) {
-      console.error("❌ No se pudo iniciar escáner de canje:", err);
-      canjeInfo.innerHTML = `<p style="color:red;">❌ Error al iniciar escáner de canje.</p>`;
-    }
-  }
-
-  async function validarCodigoCanje(codigo) {
-    canjeInfo.innerHTML = '<div class="spinner"></div>';
-
-    try {
-      const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/canjes/validar`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ codigo })
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        canjeInfo.innerHTML = `<p style="color:red;">❌ ${data.error || 'Código inválido'}</p>`;
-        setTimeout(() => iniciarCanjeScanner(), 2500);
-        return;
-      }
-
-      canjeInfo.innerHTML = `
-        <div class="cliente-info">
-          <h3>🎉 Código válido</h3>
-          <p>Cliente: <strong>${data.clienteNombre}</strong></p>
-          <p>Promoción: <strong>${data.promocionTitulo}</strong></p>
-          <p><span style="color:green;">✅ Canje confirmado</span></p>
-        </div>
-      `;
-    } catch (err) {
-      console.error('❌ Error al validar canje:', err);
-      canjeInfo.innerHTML = `<p style="color:red;">❌ Error de red o servidor</p>`;
-    }
-  }
-
-  // Ejecutar escáner al iniciar
-  iniciarCanjeScanner();
-
+// Iniciar escáner y cargar clientes al abrir
+iniciarScanner();
+loadClientes();
 </script>
 
 </body>

@@ -75,7 +75,7 @@
   </nav>
 
   <div class="container">
-    <h2>📋 Historial de Canjes</h2>
+    <h2>🎁 Historial de Canjes</h2>
     <p id="nombreCliente"></p>
     <div class="historial" id="historial"></div>
 
@@ -96,44 +96,50 @@
       window.location.href = '/login.html';
     }
 
-    async function cargarHistorial() {
+    async function cargarHistorialCanjes() {
       try {
         const clienteRes = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${id}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
         if (!clienteRes.ok) throw new Error('Error al obtener cliente');
-
         const cliente = await clienteRes.json();
-        document.getElementById('nombreCliente').textContent = `Hola ${cliente.nombre}, estos son tus movimientos`;
 
-        const recargasRes = await fetch(`https://tengo-hambre-backend.onrender.com/api/recargas/${id}`, {
+        document.getElementById('nombreCliente').textContent = `Hola ${cliente.nombre}, estos son tus canjes`;
+
+        const canjesRes = await fetch(`https://tengo-hambre-backend.onrender.com/api/canjes/cliente/${id}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
-        if (!recargasRes.ok) throw new Error('Error al obtener recargas');
+        if (!canjesRes.ok) throw new Error('Error al obtener canjes');
+        const canjes = await canjesRes.json();
 
-        const recargas = await recargasRes.json();
         const historialDiv = document.getElementById('historial');
 
-        if (recargas.length === 0) {
-          historialDiv.innerHTML = '<p>Aún no tenés movimientos.</p>';
+        if (canjes.length === 0) {
+          historialDiv.innerHTML = '<p>Aún no hiciste ningún canje.</p>';
           return;
         }
 
-        recargas.forEach(r => {
+        canjes.forEach(c => {
           const div = document.createElement('div');
           div.className = 'item';
-          div.innerHTML = `<strong>${r.monto} coins</strong> - ${new Date(r.fecha).toLocaleString()}`;
+          div.innerHTML = `
+            <strong>🎁 ${c.promociones.titulo}</strong><br>
+            Código: <code>${c.codigo}</code><br>
+            Fecha: ${new Date(c.fecha).toLocaleString()}<br>
+            Estado: ${c.usado ? '✅ Usado' : '❌ No usado'}
+          `;
           historialDiv.appendChild(div);
         });
+
       } catch (err) {
         console.error(err);
         document.getElementById('historial').innerHTML = '<p style="color:red;">⚠️ Error al cargar historial.</p>';
       }
     }
 
-    cargarHistorial();
+    cargarHistorialCanjes();
   </script>
 </body>
 </html>

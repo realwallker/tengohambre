@@ -310,6 +310,30 @@ app.get('/api/canjes/:codigo', authenticateJWT, authorizeRole('admin'), async (r
   }
 });
 
+app.get('/api/canjes/cliente/:clienteId', authenticateJWT, authorizeRole('cliente'), async (req, res) => {
+  const { clienteId } = req.params;
+
+  if (req.user.id !== clienteId) {
+    return res.status(403).json({ error: 'No autorizado' });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('canjes')
+      .select('codigo, usado, fecha, promociones(titulo)')
+      .eq('clienteid', clienteId)
+      .order('fecha', { ascending: false });
+
+    if (error) throw error;
+
+    res.json(data);
+  } catch (error) {
+    console.error('❌ Error al obtener canjes del cliente:', error);
+    res.status(500).json({ error: 'Error al obtener canjes' });
+  }
+});
+
+
 // Confirmar entrega del canje
 app.post('/api/canjes/:codigo/confirmar', authenticateJWT, authorizeRole('admin'), async (req, res) => {
   const { codigo } = req.params;
