@@ -78,84 +78,106 @@
   </div>
 
   <script>
-    const token = localStorage.getItem('token');
-    const rol = localStorage.getItem('rol');
-    const userId = localStorage.getItem('userId');
+  const token = localStorage.getItem('token');
+  const rol = localStorage.getItem('rol');
+  const userId = localStorage.getItem('userId');
 
-    if (!token || rol !== 'cliente') {
-      alert('Acceso denegado');
-      window.location.href = '/login.html';
+  if (!token || rol !== 'cliente') {
+    alert('Acceso denegado');
+    window.location.href = '/login.html';
+  }
+
+  document.getElementById('perfilLink').href = `/cliente.html?id=${userId}`;
+
+  let coins = 0;
+
+  async function cargarPromos() {
+    try {
+      const resUser = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${userId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!resUser.ok) throw new Error('Error al cargar usuario');
+
+      const cliente = await resUser.json();
+      coins = cliente.hambreCoins;
+
+      const resPromos = await fetch(`https://tengo-hambre-backend.onrender.com/api/promociones`);
+      const promociones = await resPromos.json();
+
+      const contenedor = document.getElementById('promos');
+      contenedor.innerHTML = '';
+
+      promociones.forEach(promo => {
+        const div = document.createElement('div');
+        div.className = 'promo';
+        div.innerHTML = `
+          <h3>${promo.titulo}</h3>
+          <p>${promo.descripcion || ''}</p>
+          <p>Costo: ${promo.valorCoins} Coins</p>
+          <button onclick="canjear('${promo.id}', '${promo.titulo}', ${promo.valorCoins})" ${coins < promo.valorCoins ? 'disabled' : ''}>
+            Canjear
+          </button>
+        `;
+        contenedor.appendChild(div);
+      });
+    } catch (err) {
+      console.error(err);
+      alert('No se pudieron cargar las promociones');
     }
+  }
 
-    document.getElementById('perfilLink').href = `/cliente.html?id=${userId}`;
+  async function canjear(promoId, promoNombre, costo) {
+    if (coins < costo) return alert('No tenés suficientes coins');
 
-    const promos = [
-      { id: 1, nombre: 'Sánduche Clásico', costo: 10 },
-      { id: 2, nombre: 'Bebida Grande', costo: 5 },
-      { id: 3, nombre: 'Combo Tengo Hambre', costo: 20 }
-    ];
+    const confirmacion = confirm(`¿Confirmás canjear ${costo} Coins por "${promoNombre}"?`);
+    if (!confirmacion) return;
 
-    let coins = 0;
+    try {
+      const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/canjes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          clienteId: userId,
+          promocionId: promoId
+        })
+      });
 
-    async function cargarPromos() {
-      try {
-        const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${userId}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+      if (!res.ok) throw new Error('Error al registrar el canje');
+      const data = await res.json();
 
-        if (!res.ok) throw new Error('Error al cargar usuario');
-
-        const cliente = await res.json();
-        coins = cliente.hambreCoins;
-
-        const contenedor = document.getElementById('promos');
-        contenedor.innerHTML = '';
-
-        promos.forEach(promo => {
-          const div = document.createElement('div');
-          div.className = 'promo';
-          div.innerHTML = `
-            <h3>${promo.nombre}</h3>
-            <p>Costo: ${promo.costo} Coins</p>
-            <button onclick="canjear(${promo.costo}, '${promo.nombre}')" ${coins < promo.costo ? 'disabled' : ''}>
-              Canjear
-            </button>
-          `;
-          contenedor.appendChild(div);
-        });
-      } catch (err) {
-        console.error(err);
-        alert('No se pudieron cargar las promociones');
-      }
+      mostrarComprobante(promoNombre, data.codigo);
+    } catch (err) {
+      console.error(err);
+      alert('Error al realizar el canje');
     }
+  }
 
-    async function canjear(costo, promoNombre) {
-      if (coins < costo) return alert('No tenés suficientes coins');
+  function mostrarComprobante(promoNombre, codigo) {
+    const contenedor = document.getElementById('promos');
+    contenedor.innerHTML = `
+      <div class="cliente-info">
+        <h3>🎉 ¡Canje exitoso!</h3>
+        <p>Promoción: <strong>${promoNombre}</strong></p>
+        <p>Código de canje:</p>
+        <div style="font-size: 1.5rem; margin: 1rem 0; background: #eee; padding: 10px; border-radius: 8px;">
+          ${codigo}
+        </div>
+        <div id="qr"></div>
+        <p>Mostralo al momento de retirar tu pedido.</p>
+        <br>
+        <button onclick="location.reload()">Volver</button>
+      </div>
+    `;
 
-      const confirmacion = confirm(`¿Confirmás canjear ${costo} Coins por "${promoNombre}"?`);
-      if (!confirmacion) return;
+    new Html5QrcodeQRCodeGenerator("qr").generate(codigo);
+  }
 
-      try {
-        const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/clientes/${userId}/cargar`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ monto: -costo })
-        });
+  cargarPromos();
+</script>
 
-        if (!res.ok) throw new Error('Error al canjear');
-
-        alert(`Canjeado: ${promoNombre}`);
-        location.reload();
-      } catch (err) {
-        console.error(err);
-        alert('Error al realizar el canje');
-      }
-    }
-
-    cargarPromos();
-  </script>
 </body>
 </html>

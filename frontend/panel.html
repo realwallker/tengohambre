@@ -127,6 +127,11 @@
   <div id="reader"></div>
   <div id="info"></div>
 
+  <h2>📦 Validar Código de Canje</h2>
+  <div id="canje-reader"></div>
+  <div id="canje-info"></div>
+
+
   <h2>👥 Clientes Registrados</h2>
   <div id="clientes"></div>
 
@@ -282,6 +287,79 @@
   // Iniciar escáner al cargar
   iniciarScanner();
   loadClientes();
+
+  const canjeReader = document.getElementById('canje-reader');
+  const canjeInfo = document.getElementById('canje-info');
+  let scannerCanje = new Html5Qrcode("canje-reader");
+
+  async function iniciarCanjeScanner() {
+    canjeReader.style.display = "block";
+    canjeInfo.innerHTML = '';
+
+    try {
+      await scannerCanje.stop();
+    } catch (_) {}
+
+    try {
+      await scannerCanje.clear();
+    } catch (_) {}
+
+    scannerCanje = new Html5Qrcode("canje-reader");
+
+    try {
+      await scannerCanje.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 200 },
+        async decodedText => {
+          await scannerCanje.stop();
+          validarCodigoCanje(decodedText.trim());
+        },
+        error => {}
+      );
+    } catch (err) {
+      console.error("❌ No se pudo iniciar escáner de canje:", err);
+      canjeInfo.innerHTML = `<p style="color:red;">❌ Error al iniciar escáner de canje.</p>`;
+    }
+  }
+
+  async function validarCodigoCanje(codigo) {
+    canjeInfo.innerHTML = '<div class="spinner"></div>';
+
+    try {
+      const res = await fetch(`https://tengo-hambre-backend.onrender.com/api/canjes/validar`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ codigo })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        canjeInfo.innerHTML = `<p style="color:red;">❌ ${data.error || 'Código inválido'}</p>`;
+        setTimeout(() => iniciarCanjeScanner(), 2500);
+        return;
+      }
+
+      canjeInfo.innerHTML = `
+        <div class="cliente-info">
+          <h3>🎉 Código válido</h3>
+          <p>Cliente: <strong>${data.clienteNombre}</strong></p>
+          <p>Promoción: <strong>${data.promocionTitulo}</strong></p>
+          <p><span style="color:green;">✅ Canje confirmado</span></p>
+        </div>
+      `;
+    } catch (err) {
+      console.error('❌ Error al validar canje:', err);
+      canjeInfo.innerHTML = `<p style="color:red;">❌ Error de red o servidor</p>`;
+    }
+  }
+
+  // Ejecutar escáner al iniciar
+  iniciarCanjeScanner();
+
 </script>
 
 </body>

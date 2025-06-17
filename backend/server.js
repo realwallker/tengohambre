@@ -227,6 +227,157 @@ app.delete('/api/clientes/:id', authenticateJWT, authorizeRole('admin'), async (
     res.status(500).json({ error: 'Error al eliminar cliente' });
   }
 });
+// Crear un canje
+app.post('/api/canjes', authenticateJWT, authorizeRole('cliente'), async (req, res) => {
+  const { clienteId, promocionId } = req.body;
+
+  if (req.user.id !== clienteId) {
+    return res.status(403).json({ error: 'No autorizado para canjear por otro cliente' });
+  }
+
+  try {
+    // Obtener cliente y promo
+    const { data: cliente, error: errCliente } = await supabase
+      .from('clientes')
+      .select('hambreCoins')
+      .eq('id', clienteId)
+      .single();
+
+    const { data: promo, error: errPromo } = await supabase
+      .from('promociones')
+      .select('valorCoins, titulo')
+      .eq('id', promocionId)
+      .single();
+
+    if (errCliente || !cliente) throw errCliente || new Error('Cliente no encontrado');
+    if (errPromo || !promo) throw errPromo || new Error('Promoción no encontrada');
+
+    if (cliente.hambreCoins < promo.valorCoins) {
+      return res.status(400).json({ error: 'Saldo insuficiente' });
+    }
+
+    // Generar código de canje único
+    const codigo = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+    // Descontar coins y guardar canje
+    const { error: updateError } = await supabase
+      .from('clientes')
+      .update({ hambreCoins: cliente.hambreCoins - promo.valorCoins })
+      .eq('id', clienteId);
+
+    const { error: insertError } = await supabase
+      .from('canjes')
+      .insert([{
+        clienteid: clienteId,
+        promocionid: promocionId,
+        codigo,
+        usado: false
+      }]);
+
+    if (updateError || insertError) throw updateError || insertError;
+
+    return res.status(200).json({
+      success: true,
+      mensaje: 'Canje registrado',
+      codigo,
+      promocion: promo.titulo
+    });
+  } catch (error) {
+    console.error('❌ Error al crear canje:', error);
+    return res.status(500).json({ error: 'Error al procesar el canje' });
+  }
+});
+
+// Consultar canje por código (admin)
+app.get('/api/canjes/:codigo', authenticateJWT, authorizeRole('admin'), async (req, res) => {
+  const { codigo } = req.params;
+
+  try {
+    const { data, error } = await supabase
+      .from('canjes')
+      .select('id, codigo, usado, fecha, promociones(titulo), clientes(nombre)')
+      .eq('codigo', codigo)
+      .single();
+
+    if (error || !data) {
+      return res.status(404).json({ error: 'Código no válido' });
+    }
+
+    return res.json(data);
+  } catch (error) {
+    console.error('❌ Error al validar código:', error);
+    res.status(500).json({ error: 'Error al buscar el canje' });
+  }
+});
+
+// Confirmar entrega del canje
+app.post('/api/canjes/:codigo/confirmar', authenticateJWT, authorizeRole('admin'), async (req, res) => {
+  const { codigo } = req.params;
+
+  try {
+    const { data, error } = await supabase
+      .from('canjes')
+      .select('usado')
+      .eq('codigo', codigo)
+      .single();
+
+    if (error || !data) return res.status(404).json({ error: 'Código no válido' });
+    if (data.usado) return res.status(400).json({ error: 'Este canje ya fue utilizado' });
+
+    const { error: updateError } = await supabase
+      .from('canjes')
+      .update({ usado: true })
+      .eq('codigo', codigo);
+
+    if (updateError) throw updateError;
+
+    res.json({ message: '✅ Canje confirmado y marcado como usado' });
+  } catch (error) {
+    console.error('❌ Error al confirmar canje:', error);
+    res.status(500).json({ error: 'Error al confirmar entrega del canje' });
+  }
+});
+
+// Validar código de canje escaneado (QR)
+app.post('/api/canjes/validar', authenticateJWT, authorizeRole('admin'), async (req, res) => {
+  const { codigo } = req.body;
+
+  try {
+    const { data, error } = await supabase
+      .from('canjes')
+      .select(`
+        id, usado, codigo,
+        cliente:clienteid (nombre),
+        promo:promocionid (titulo)
+      `)
+      .eq('codigo', codigo)
+      .single();
+
+    if (error || !data) {
+      return res.status(404).json({ success: false, error: 'Código no encontrado' });
+    }
+
+    if (data.usado) {
+      return res.status(400).json({ success: false, error: 'Este código ya fue utilizado' });
+    }
+
+    // Marcar como usado
+    await supabase
+      .from('canjes')
+      .update({ usado: true })
+      .eq('id', data.id);
+
+    return res.status(200).json({
+      success: true,
+      clienteNombre: data.cliente.nombre,
+      promocionTitulo: data.promo.titulo
+    });
+  } catch (error) {
+    console.error('❌ Error al validar canje:', error);
+    return res.status(500).json({ success: false, error: 'Error en el servidor' });
+  }
+});
+
 
 // Iniciar servidor
 app.listen(PORT, () => {
