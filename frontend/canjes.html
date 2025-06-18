@@ -122,16 +122,18 @@
         }
 
         canjes.forEach(c => {
-          const div = document.createElement('div');
-          div.className = 'item';
-          div.innerHTML = `
-            <strong>🎁 ${c.promociones.titulo}</strong><br>
-            Código: <code>${c.codigo}</code><br>
-            Fecha: ${new Date(c.fecha).toLocaleString()}<br>
-            Estado: ${c.usado ? '✅ Usado' : '❌ No usado'}
-          `;
-          historialDiv.appendChild(div);
+        const div = document.createElement('div');
+        div.className = 'item';
+        div.innerHTML = `
+        <strong>🎁 ${c.promociones.titulo}</strong><br>
+        Código: <code>${c.codigo}</code><br>
+        Fecha: ${new Date(c.fecha).toLocaleString()}<br>
+        Estado: ${c.usado ? '✅ Usado' : '❌ No usado'}<br>
+        <button onclick="mostrarCodigo('${c.codigo}', '${c.promociones.titulo}')">Ver Código</button>
+        `;
+        historialDiv.appendChild(div);
         });
+
 
       } catch (err) {
         console.error(err);
@@ -141,5 +143,33 @@
 
     cargarHistorialCanjes();
   </script>
+  <!-- Modal para mostrar código -->
+<div id="modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:#0008; z-index:1000; justify-content:center; align-items:center;">
+  <div style="background:#fff1dc; padding:2rem; border-radius:12px; max-width:90%; text-align:center;">
+    <h3>🎟️ Código de Canje</h3>
+    <p id="promoTitulo" style="font-weight:bold;"></p>
+    <div id="codigo" style="font-size:2rem; margin:1rem 0; background:#eee; padding:10px; border-radius:8px;"></div>
+    <div id="qrCanvas" style="margin-bottom:1rem;"></div>
+    <button onclick="cerrarModal()">Cerrar</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+<script>
+  function mostrarCodigo(codigo, promoTitulo) {
+    document.getElementById('promoTitulo').textContent = promoTitulo;
+    document.getElementById('codigo').textContent = codigo;
+    document.getElementById('qrCanvas').innerHTML = '';
+    QRCode.toCanvas(document.getElementById('qrCanvas'), codigo, { width: 200 }, e => {
+      if (e) console.error(e);
+    });
+    document.getElementById('modal').style.display = 'flex';
+  }
+
+  function cerrarModal() {
+    document.getElementById('modal').style.display = 'none';
+  }
+</script>
+
 </body>
 </html>
