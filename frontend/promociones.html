@@ -119,28 +119,29 @@
     }
 
     async function canjear(idPromo, titulo, costo) {
-      const confirmacion = confirm(`¿Confirmás canjear ${costo} Coins por "${titulo}"?`);
-      if (!confirmacion) return;
+  const confirmacion = confirm(`¿Confirmás canjear ${costo} Coins por "${titulo}"?`);
+  if (!confirmacion) return;
 
-      try {
-        const res = await fetch('/api/canjes', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ clienteId: userId, promocionId: idPromo })
-        });
-        if (!res.ok) throw new Error('Error al registrar el canje');
-        const data = await res.json();
+  try {
+    const res = await fetch(`${API_URL}/api/canjes`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ clienteId: userId, promocionId: idPromo })
+    });
+    if (!res.ok) throw new Error('Error al registrar el canje');
+    const data = await res.json();
 
-        mostrarComprobante(titulo, data.codigo);
+    mostrarComprobante(titulo, data.codigo);
 
-      } catch (err) {
-        console.error(err);
-        alert('Error al realizar el canje');
-      }
-    }
+  } catch (err) {
+    console.error(err);
+    alert('Error al realizar el canje');
+  }
+}
+
 
     function mostrarComprobante(titulo, codigo) {
       const cont = document.getElementById('promos');
