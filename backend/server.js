@@ -137,6 +137,7 @@ app.get('/api/clientes/:id', authenticateJWT, async (req, res) => {
   }
 });
 
+
 // Recarga de hambreCoins (puede ser positiva o negativa)
 app.post('/api/clientes/:id/cargar', authenticateJWT, authorizeRole('admin'), async (req, res) => {
   const { id } = req.params;
@@ -192,7 +193,8 @@ app.post('/api/clientes/:id/cargar', authenticateJWT, authorizeRole('admin'), as
 app.get('/api/clientes/:id/recargas', authenticateJWT, async (req, res) => {
   const { id } = req.params;
 
-  if (req.user.rol !== 'admin' && req.user.id !== id) {
+   console.log("🔍 Comparando IDs:", req.user.id, id);
+   if (req.user.rol !== 'admin' && String(req.user.id) !== String(id)) {
     return res.status(403).json({ error: 'Acceso prohibido' });
   }
 
