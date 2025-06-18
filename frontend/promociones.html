@@ -35,7 +35,7 @@
     const token = localStorage.getItem('token');
     const rol = localStorage.getItem('rol');
     const userId = localStorage.getItem('userId');
-
+    const API_URL = "https://tengo-hambre-backend.onrender.com";
     if (!token || rol !== 'cliente') {
       alert('Acceso denegado');
       window.location.href = '/login.html';
@@ -45,16 +45,17 @@
 
     async function cargarPromos() {
       try {
-        const resUser = await fetch(`/api/clientes/${userId}`, {
+        const resUser = await fetch(`${API_URL}/api/clientes/${userId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!resUser.ok) throw new Error('Error al cargar usuario');
         const cliente = await resUser.json();
         document.getElementById('coinDisplay').textContent = `Tu saldo: ${cliente.hambreCoins} Coins`;
 
-        const resPromos = await fetch('/api/promociones', {
-          headers: { 'Authorization': `Bearer ${token}` }
+        const resPromos = await fetch(`${API_URL}/api/promociones`, {
+        headers: { 'Authorization': `Bearer ${token}` }
         });
+
         if (!resPromos.ok) throw new Error('Error al cargar promociones');
         const promociones = await resPromos.json();
 

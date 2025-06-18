@@ -6,7 +6,7 @@ const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const supabase = require('./db');
 const cors = require('cors');
-
+const API_URL = "https://tengo-hambre-backend.onrender.com";
 const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'clave_secreta_segura';
