@@ -11,8 +11,21 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'clave_secreta_segura';
 
+const allowedOrigins = [
+  'https://tengohambre.vercel.app',
+  'http://localhost:4200'
+];
+
 app.use(cors({
-  origin: 'https://tengohambre.vercel.app',
+  origin: function (origin, callback) {
+    // Permitir peticiones sin origen (por ejemplo, Postman o curl)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true // si usas cookies o autenticación con sesiones
 }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../frontend')));
